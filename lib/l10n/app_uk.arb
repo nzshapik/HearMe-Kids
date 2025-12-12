@@ -1,0 +1,13 @@
+{
+  "@@locale": "uk",
+  "appTitle": "HearMe",
+  "activateListening": "Активувати слухання",
+  "adviceOfDay": "Порада дня",
+  "start": "Старт",
+  "stop": "Стоп",
+  "homeShortStats": "Піки сьогодні: {count}",
+  "painMap": "Pain Map",
+  "anchors": "Якорі",
+  "stats": "Статистика",
+  "settings": "Налаштування"
+}

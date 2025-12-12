@@ -1,0 +1,13 @@
+{
+  "@@locale": "en",
+  "appTitle": "HearMe",
+  "activateListening": "Activate listening",
+  "adviceOfDay": "Advice of the day",
+  "start": "Start",
+  "stop": "Stop",
+  "homeShortStats": "Today peaks: {count}",
+  "painMap": "Pain Map",
+  "anchors": "Anchors",
+  "stats": "Statistics",
+  "settings": "Settings"
+}
