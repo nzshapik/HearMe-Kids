@@ -10,7 +10,7 @@ class AiTherapistAiService {
 
   // ⚠️ ТІЛЬКИ ДЛЯ ЛОКАЛЬНОГО ТЕСТУ!
   // В продакшені ключ потрібно зберігати на бекенді.
-  static const String _apiKey = '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';
+  static const String _apiKey = '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';
 
   static const String _apiUrl = 'https://api.openai.com/v1/chat/completions';
 

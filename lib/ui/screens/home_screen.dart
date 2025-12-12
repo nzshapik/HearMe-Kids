@@ -5,6 +5,7 @@ import 'positive_anchors_screen.dart';
 import 'listening_screen.dart';
 import 'calm_message_ai_service.dart';
 import 'ai_therapist_screen.dart';
+import '../widgets/audio_recorder_widget.dart';
 
 class SavedSession {
   final DateTime createdAt;
@@ -34,6 +35,8 @@ class CalmMessageScreen extends StatefulWidget {
 
 class _CalmMessageScreenState extends State<CalmMessageScreen> {
   final TextEditingController emotionalCtrl = TextEditingController();
+
+  String? _recordedAudioPath;
 
   bool _isLoading = false;
   String? _errorText;
@@ -254,6 +257,15 @@ class _CalmMessageScreenState extends State<CalmMessageScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            AudioRecorderWidget(
+              onRecorded: (path) {
+                setState(() => _recordedAudioPath = path);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('✅ Voice recorded.')),
+                );
+              },
+            ),
+            const SizedBox(height: 12),
             TextField(
               controller: emotionalCtrl,
               maxLines: 5,
@@ -372,7 +384,7 @@ class _CalmMessageScreenState extends State<CalmMessageScreen> {
                 ),
               ),
 
-            Expanded(
+            Flexible(
               child: _variants.isEmpty
                   ? Center(
                       child: Text(
@@ -933,76 +945,78 @@ class HomeScreen extends StatelessWidget {
 
               // ===== 4 cards =====
               Expanded(
-                child: Column(
-                  children: [
-                    Row(
-                      children: [
-                        Expanded(
-                          child: _FeatureCard(
-                            icon: Icons.chat_bubble_outline,
-                            iconBackground: const Color(0xFFE7DDFF),
-                            title: 'AI Therapist',
-                            onTap: () {
-                              Navigator.of(context).push(
-                                MaterialPageRoute(
-                                  builder: (_) => const AiTherapistScreen(),
-                                ),
-                              );
-                            },
+                child: SingleChildScrollView(
+                  child: Column(
+                    children: [
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _FeatureCard(
+                              icon: Icons.chat_bubble_outline,
+                              iconBackground: const Color(0xFFE7DDFF),
+                              title: 'AI Therapist',
+                              onTap: () {
+                                Navigator.of(context).push(
+                                  MaterialPageRoute(
+                                    builder: (_) => const AiTherapistScreen(),
+                                  ),
+                                );
+                              },
+                            ),
                           ),
-                        ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: _FeatureCard(
-                            icon: Icons.sentiment_satisfied_outlined,
-                            iconBackground: const Color(0xFFE5F7F0),
-                            title: 'Calm Message',
-                            onTap: () {
-                              Navigator.of(context).push(
-                                MaterialPageRoute(
-                                  builder: (_) => const CalmMessageScreen(),
-                                ),
-                              );
-                            },
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: _FeatureCard(
+                              icon: Icons.sentiment_satisfied_outlined,
+                              iconBackground: const Color(0xFFE5F7F0),
+                              title: 'Calm Message',
+                              onTap: () {
+                                Navigator.of(context).push(
+                                  MaterialPageRoute(
+                                    builder: (_) => const CalmMessageScreen(),
+                                  ),
+                                );
+                              },
+                            ),
                           ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: _FeatureCard(
-                            icon: Icons.mic_none,
-                            iconBackground: const Color(0xFFFFF0DA),
-                            title: 'Manual Record',
-                            onTap: () {
-                              Navigator.of(context).push(
-                                MaterialPageRoute(
-                                  builder: (_) => const ListeningScreen(),
-                                ),
-                              );
-                            },
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _FeatureCard(
+                              icon: Icons.mic_none,
+                              iconBackground: const Color(0xFFFFF0DA),
+                              title: 'Manual Record',
+                              onTap: () {
+                                Navigator.of(context).push(
+                                  MaterialPageRoute(
+                                    builder: (_) => const ListeningScreen(),
+                                  ),
+                                );
+                              },
+                            ),
                           ),
-                        ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: _FeatureCard(
-                            icon: Icons.favorite_border,
-                            iconBackground: const Color(0xFFFFE5F0),
-                            title: 'Positive Anchors',
-                            onTap: () {
-                              Navigator.of(context).push(
-                                MaterialPageRoute(
-                                  builder: (_) => const PositiveAnchorsScreen(),
-                                ),
-                              );
-                            },
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: _FeatureCard(
+                              icon: Icons.favorite_border,
+                              iconBackground: const Color(0xFFFFE5F0),
+                              title: 'Positive Anchors',
+                              onTap: () {
+                                Navigator.of(context).push(
+                                  MaterialPageRoute(
+                                    builder: (_) => const PositiveAnchorsScreen(),
+                                  ),
+                                );
+                              },
+                            ),
                           ),
-                        ),
-                      ],
-                    ),
-                  ],
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ],

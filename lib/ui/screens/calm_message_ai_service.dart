@@ -114,7 +114,7 @@ class CalmMessageAiService {
   // ⚠️ ТІЛЬКИ ДЛЯ ЛОКАЛЬНОГО ТЕСТУ!
   // В проді ключ треба зберігати на бекенді.
   // 🔑 СЮДИ ВСТАВ СВІЙ OPENAI API KEY (локально):
-  static const String _apiKey = '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';
+  static const String _apiKey = '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';
 
   static const String _apiUrl = 'https://api.openai.com/v1/chat/completions';
 
@@ -169,16 +169,20 @@ class CalmMessageAiService {
     return CalmMessageResult(variants: variants);
   }
 
-   /// Базовий виклик OpenAI, спільний для всіх стилів.
+  /// Базовий виклик OpenAI, спільний для всіх стилів.
   Future<String> _callOpenAi({
     required String systemPrompt,
     required String userText,
   }) async {
-    // ❗ НІЯКИХ ПЕРЕВІРОК КЛЮЧА – просто використовуємо те, що ти вставив.
+    final apiKey = _apiKey.trim();
+    if (apiKey.isEmpty || apiKey == 'PASTE_YOUR_OPENAI_API_KEY_HERE') {
+      throw Exception('OpenAI API key is missing. Paste a valid key into CalmMessageAiService._apiKey');
+    }
+
     final uri = Uri.parse(_apiUrl);
 
     final headers = {
-      'Authorization': 'Bearer $_apiKey',
+      'Authorization': 'Bearer $apiKey',
       'Content-Type': 'application/json',
     };
 
@@ -201,6 +205,16 @@ class CalmMessageAiService {
     final response = await http.post(uri, headers: headers, body: body);
 
     if (response.statusCode != 200) {
+      if (response.statusCode == 401) {
+        throw Exception(
+          'OpenAI error 401 (Unauthorized). The API key was rejected. This usually means the key is invalid, revoked, or belongs to a different account/project. Response: ${response.body}',
+        );
+      }
+      if (response.statusCode == 429) {
+        throw Exception(
+          'OpenAI error 429 (Rate limit / quota). You may have no quota or you hit a rate limit. Response: ${response.body}',
+        );
+      }
       throw Exception(
         'OpenAI error: ${response.statusCode} – ${response.body}',
       );

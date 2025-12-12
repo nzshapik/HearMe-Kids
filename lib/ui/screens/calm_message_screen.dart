@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import 'calm_message_ai_service.dart';
+import '../widgets/audio_recorder_widget.dart';
 
 
 class CalmMessageScreen extends StatefulWidget {
@@ -13,6 +14,8 @@ class CalmMessageScreen extends StatefulWidget {
 
 class _CalmMessageScreenState extends State<CalmMessageScreen> {
   final TextEditingController emotionalCtrl = TextEditingController();
+
+  String? _recordedAudioPath;
 
   bool _isLoading = false;
   String? _errorText;
@@ -237,6 +240,15 @@ class _CalmMessageScreenState extends State<CalmMessageScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const SizedBox(height: 10),
+            AudioRecorderWidget(
+              onRecorded: (path) {
+                setState(() => _recordedAudioPath = path);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('✅ Voice recorded.')),
+                );
+              },
+            ),
+            const SizedBox(height: 14),
             const Text(
               'Your Emotional Draft',
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
