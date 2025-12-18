@@ -191,11 +191,11 @@ class KidHomeScreen extends StatelessWidget {
                   _KidTile(
                     emoji: '🎤',
                     title: 'Я хочу поговорити',
-                    subtitle: 'Розкажи, що ти відчуваєш',
+                    subtitle: 'Скажи, що відчуваєш',
                     color: const Color(0xFFFFE0E0),
                     onTap: () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('👉 Далі: дитячий voice flow')),
+                      Navigator.of(context).push(
+                        MaterialPageRoute(builder: (_) => const KidTalkChoiceScreen()),
                       );
                     },
                   ),
@@ -205,30 +205,30 @@ class KidHomeScreen extends StatelessWidget {
                     subtitle: 'Подихаємо разом',
                     color: const Color(0xFFE0F7FA),
                     onTap: () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('👉 Далі: breathing screen')),
+                      Navigator.of(context).push(
+                        MaterialPageRoute(builder: (_) => const KidBreathingScreen()),
                       );
                     },
                   ),
                   _KidTile(
-                    emoji: '🎮',
-                    title: 'Гра для настрою',
-                    subtitle: 'Коротка вправа або гра',
+                    emoji: '💛',
+                    title: 'Я хочу пояснити батькам',
+                    subtitle: 'Вони мене не чують',
+                    color: const Color(0xFFFFF3C4),
+                    onTap: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(builder: (_) => const KidExplainToParentsScreen()),
+                      );
+                    },
+                  ),
+                  _KidTile(
+                    emoji: '🧠',
+                    title: 'Цікавинки / Питай AI',
+                    subtitle: 'Напр: лев чи ягуар?',
                     color: const Color(0xFFEDE7F6),
                     onTap: () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('👉 Далі: mood game')),
-                      );
-                    },
-                  ),
-                  _KidTile(
-                    emoji: '⭐️',
-                    title: 'Мій настрій',
-                    subtitle: 'Швидка позначка',
-                    color: const Color(0xFFFFF1C9),
-                    onTap: () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('👉 Далі: mood check-in')),
+                      Navigator.of(context).push(
+                        MaterialPageRoute(builder: (_) => const KidCuriosityAiScreen()),
                       );
                     },
                   ),
@@ -468,6 +468,474 @@ class _Splash extends StatelessWidget {
           height: 24,
           width: 24,
           child: CircularProgressIndicator(strokeWidth: 2),
+        ),
+      ),
+    );
+  }
+}
+
+// =========================
+// Kid screens (UA only)
+// =========================
+
+class KidTalkChoiceScreen extends StatefulWidget {
+  const KidTalkChoiceScreen({super.key});
+
+  @override
+  State<KidTalkChoiceScreen> createState() => _KidTalkChoiceScreenState();
+}
+
+class _KidTalkChoiceScreenState extends State<KidTalkChoiceScreen> {
+  final TextEditingController _textCtrl = TextEditingController();
+
+  @override
+  void dispose() {
+    _textCtrl.dispose();
+    super.dispose();
+  }
+
+  void _shareText() {
+    final t = _textCtrl.text.trim();
+    if (t.isEmpty) return;
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => KidShareToParentsPreviewScreen(message: t),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: const Color(0xFFFFF6D8),
+      appBar: AppBar(
+        backgroundColor: const Color(0xFFFFF6D8),
+        elevation: 0,
+        centerTitle: true,
+        title: const Text(
+          'Розкажи, як ти себе почуваєш ☁️',
+          style: TextStyle(fontWeight: FontWeight.w900),
+        ),
+      ),
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const Text(
+                'Обери спосіб, який тобі найзручніший 😊',
+                style: TextStyle(fontSize: 14, color: Colors.brown),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 16),
+
+              _ChoiceButton(
+                title: 'Написати ✍️',
+                subtitle: 'Напиши, що відчуваєш',
+                color: const Color(0xFFFFE0E0),
+                onTap: () {
+                  // просто фокус на поле нижче
+                  FocusScope.of(context).requestFocus(FocusNode());
+                  Future.delayed(const Duration(milliseconds: 1), () {
+                    FocusScope.of(context).requestFocus();
+                  });
+                },
+              ),
+              const SizedBox(height: 12),
+
+              _ChoiceButton(
+                title: 'Сказати вголос 🎤',
+                subtitle: '(можна навіть казати погані слова, але ми про це нікому не скажемо 🤭)',
+                color: const Color(0xFFE0F7FA),
+                onTap: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => const KidSayOutLoudScreen()),
+                  );
+                },
+              ),
+              const SizedBox(height: 12),
+
+              _ChoiceButton(
+                title: 'Обрати емоцію 😊',
+                subtitle: 'Обери смайлик',
+                color: const Color(0xFFEDE7F6),
+                onTap: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => const KidPickEmotionScreen()),
+                  );
+                },
+              ),
+
+              const SizedBox(height: 18),
+              Container(
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(18),
+                ),
+                child: TextField(
+                  controller: _textCtrl,
+                  maxLines: 5,
+                  decoration: const InputDecoration(
+                    border: InputBorder.none,
+                    hintText: 'Розкажи про свій день…',
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+
+              SizedBox(
+                height: 48,
+                child: ElevatedButton(
+                  onPressed: _textCtrl.text.trim().isEmpty ? null : _shareText,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF7A3EFE),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  ),
+                  child: const Text('Поділитися'),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class KidSayOutLoudScreen extends StatelessWidget {
+  const KidSayOutLoudScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: const Color(0xFFFFF6D8),
+      appBar: AppBar(
+        backgroundColor: const Color(0xFFFFF6D8),
+        elevation: 0,
+        centerTitle: true,
+        title: const Text(
+          'Сказати вголос 🎤',
+          style: TextStyle(fontWeight: FontWeight.w900),
+        ),
+      ),
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            children: [
+              const SizedBox(height: 16),
+              const Text(
+                'Можеш говорити все, що відчуваєш 💛',
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800),
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                'Можна навіть казати погані слова,\nале ми про це нікому не скажемо 🤭',
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 14, color: Colors.brown),
+              ),
+              const Spacer(),
+              GestureDetector(
+                onTap: () {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('🎤 Запис почнеться тут (наступний крок)')),
+                  );
+                },
+                child: Container(
+                  height: 160,
+                  width: 160,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: const Color(0xFF7A3EFE),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.15),
+                        blurRadius: 20,
+                        offset: const Offset(0, 10),
+                      ),
+                    ],
+                  ),
+                  child: const Icon(Icons.mic, size: 80, color: Colors.white),
+                ),
+              ),
+              const SizedBox(height: 24),
+              const Text('Натисни і говори', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+              const Spacer(),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () => Navigator.of(context).pop(),
+                      child: const Text('Скасувати'),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: () {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Запис збережено 💛')),
+                        );
+                        Navigator.of(context).pop();
+                      },
+                      child: const Text('Готово'),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class KidPickEmotionScreen extends StatefulWidget {
+  const KidPickEmotionScreen({super.key});
+
+  @override
+  State<KidPickEmotionScreen> createState() => _KidPickEmotionScreenState();
+}
+
+class _KidPickEmotionScreenState extends State<KidPickEmotionScreen> {
+  String? _selected;
+
+  void _share() {
+    if (_selected == null) return;
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => KidShareToParentsPreviewScreen(
+          message: 'Я зараз відчуваю: $_selected',
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final emotions = <String>['😊 Радість', '😢 Сум', '😠 Злість', '😟 Тривога', '😳 Сором', '😴 Втома'];
+
+    return Scaffold(
+      backgroundColor: const Color(0xFFFFF6D8),
+      appBar: AppBar(
+        backgroundColor: const Color(0xFFFFF6D8),
+        elevation: 0,
+        centerTitle: true,
+        title: const Text('Обрати емоцію 😊', style: TextStyle(fontWeight: FontWeight.w900)),
+      ),
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            children: [
+              Wrap(
+                spacing: 10,
+                runSpacing: 10,
+                children: emotions.map((e) {
+                  final selected = _selected == e;
+                  return InkWell(
+                    onTap: () => setState(() => _selected = e),
+                    borderRadius: BorderRadius.circular(18),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                      decoration: BoxDecoration(
+                        color: selected ? const Color(0xFF7A3EFE).withOpacity(0.15) : Colors.white,
+                        borderRadius: BorderRadius.circular(18),
+                        border: Border.all(color: Colors.black.withOpacity(0.06)),
+                      ),
+                      child: Text(e, style: const TextStyle(fontWeight: FontWeight.w800)),
+                    ),
+                  );
+                }).toList(),
+              ),
+              const Spacer(),
+              SizedBox(
+                width: double.infinity,
+                height: 48,
+                child: ElevatedButton(
+                  onPressed: _selected == null ? null : _share,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF7A3EFE),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  ),
+                  child: const Text('Поділитися'),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class KidShareToParentsPreviewScreen extends StatelessWidget {
+  final String message;
+  const KidShareToParentsPreviewScreen({super.key, required this.message});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: const Color(0xFFF5F7FA),
+      appBar: AppBar(
+        title: const Text('Для батьків 💛'),
+      ),
+      body: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const Text(
+              'Покажи це мамі або татові:',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
+            ),
+            const SizedBox(height: 12),
+            Expanded(
+              child: Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: SingleChildScrollView(
+                  child: Text(message, style: const TextStyle(fontSize: 16, height: 1.4)),
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+            SizedBox(
+              height: 48,
+              child: ElevatedButton(
+                onPressed: () {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Скопіюємо / поділимося — наступний крок 🙂')),
+                  );
+                },
+                child: const Text('Скопіювати'),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class KidBreathingScreen extends StatelessWidget {
+  const KidBreathingScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: const Color(0xFFFFF6D8),
+      appBar: AppBar(
+        backgroundColor: const Color(0xFFFFF6D8),
+        elevation: 0,
+        centerTitle: true,
+        title: const Text('Подихаємо разом 🫧', style: TextStyle(fontWeight: FontWeight.w900)),
+      ),
+      body: const Center(
+        child: Text(
+          'Екран дихання з анімацією\n— наступний крок ✅',
+          textAlign: TextAlign.center,
+          style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
+        ),
+      ),
+    );
+  }
+}
+
+class KidExplainToParentsScreen extends StatelessWidget {
+  const KidExplainToParentsScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: const Color(0xFFFFF6D8),
+      appBar: AppBar(
+        backgroundColor: const Color(0xFFFFF6D8),
+        elevation: 0,
+        centerTitle: true,
+        title: const Text('Пояснити батькам 💛', style: TextStyle(fontWeight: FontWeight.w900)),
+      ),
+      body: const Center(
+        child: Text(
+          'Екран для повідомлення батькам\n— наступний крок ✅',
+          textAlign: TextAlign.center,
+          style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
+        ),
+      ),
+    );
+  }
+}
+
+class KidCuriosityAiScreen extends StatelessWidget {
+  const KidCuriosityAiScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: const Color(0xFFFFF6D8),
+      appBar: AppBar(
+        backgroundColor: const Color(0xFFFFF6D8),
+        elevation: 0,
+        centerTitle: true,
+        title: const Text('Цікавинки / Питай AI 🧠', style: TextStyle(fontWeight: FontWeight.w900)),
+      ),
+      body: const Center(
+        child: Text(
+          'Екран питань до AI\n— наступний крок ✅',
+          textAlign: TextAlign.center,
+          style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
+        ),
+      ),
+    );
+  }
+}
+
+class _ChoiceButton extends StatelessWidget {
+  final String title;
+  final String subtitle;
+  final Color color;
+  final VoidCallback onTap;
+
+  const _ChoiceButton({
+    required this.title,
+    required this.subtitle,
+    required this.color,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(22),
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: color,
+          borderRadius: BorderRadius.circular(22),
+          border: Border.all(color: Colors.black.withOpacity(0.05)),
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900)),
+                  const SizedBox(height: 6),
+                  Text(subtitle, style: const TextStyle(fontSize: 12, color: Colors.brown)),
+                ],
+              ),
+            ),
+            const Icon(Icons.chevron_right),
+          ],
         ),
       ),
     );
