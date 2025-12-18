@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../../core/role_storage.dart';
 import '../../core/user_role.dart';
 
-// ✅ Import your current "adult" home screen:
+// ✅ Parent (adult) home:
 import 'home_screen.dart';
 
 class RoleGate extends StatelessWidget {
@@ -57,11 +57,10 @@ class RoleSelectScreen extends StatelessWidget {
               ),
               const SizedBox(height: 8),
               const Text(
-                'Choose your mode. You can change it later (we’ll add a settings switch).',
+                'Choose your mode. You can change it later.',
                 style: TextStyle(fontSize: 14, color: Colors.grey),
               ),
               const SizedBox(height: 24),
-
               _RoleCard(
                 title: 'Parent',
                 subtitle: 'Serious UI: Calm Message, AI Therapist, settings…',
@@ -75,10 +74,9 @@ class RoleSelectScreen extends StatelessWidget {
                 icon: Icons.emoji_emotions_outlined,
                 onTap: () => _choose(context, UserRole.kid),
               ),
-
               const Spacer(),
               const Text(
-                'Tip: later we can protect Parent mode with a PIN.',
+                'Tip: later we can add PIN for Parent if you want.',
                 style: TextStyle(fontSize: 12, color: Colors.grey),
               ),
             ],
@@ -94,8 +92,6 @@ class ParentShell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // We keep your current adult interface as-is:
-    // HomeScreen is likely a full Scaffold, so we wrap it in a Stack to overlay a small switch button.
     return Stack(
       children: [
         const HomeScreen(),
@@ -151,63 +147,217 @@ class KidShell extends StatelessWidget {
   }
 }
 
+// ✅ Kid UI (fully different feel)
 class KidHomeScreen extends StatelessWidget {
   const KidHomeScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFFFFBF0),
+      backgroundColor: const Color(0xFFFFF6D8),
       appBar: AppBar(
-        backgroundColor: const Color(0xFFFFFBF0),
+        backgroundColor: const Color(0xFFFFF6D8),
         elevation: 0,
+        centerTitle: true,
         title: const Text(
-          'HearMe Kids',
-          style: TextStyle(fontWeight: FontWeight.w800),
+          'HearMe Kids 🌈',
+          style: TextStyle(fontWeight: FontWeight.w900, fontSize: 22),
         ),
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(18),
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const Text(
+                'Привіт! 👋',
+                style: TextStyle(fontSize: 32, fontWeight: FontWeight.w900),
+              ),
+              const SizedBox(height: 6),
+              const Text(
+                'Що ти хочеш зробити зараз?',
+                style: TextStyle(fontSize: 16, color: Colors.brown),
+              ),
+              const SizedBox(height: 24),
+              GridView.count(
+                crossAxisCount: 2,
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                crossAxisSpacing: 14,
+                mainAxisSpacing: 14,
+                childAspectRatio: 1,
+                children: [
+                  _KidTile(
+                    emoji: '🎤',
+                    title: 'Я хочу поговорити',
+                    subtitle: 'Розкажи, що ти відчуваєш',
+                    color: const Color(0xFFFFE0E0),
+                    onTap: () {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('👉 Далі: дитячий voice flow')),
+                      );
+                    },
+                  ),
+                  _KidTile(
+                    emoji: '🫧',
+                    title: 'Я хочу заспокоїтись',
+                    subtitle: 'Подихаємо разом',
+                    color: const Color(0xFFE0F7FA),
+                    onTap: () {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('👉 Далі: breathing screen')),
+                      );
+                    },
+                  ),
+                  _KidTile(
+                    emoji: '🎮',
+                    title: 'Гра для настрою',
+                    subtitle: 'Коротка вправа або гра',
+                    color: const Color(0xFFEDE7F6),
+                    onTap: () {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('👉 Далі: mood game')),
+                      );
+                    },
+                  ),
+                  _KidTile(
+                    emoji: '⭐️',
+                    title: 'Мій настрій',
+                    subtitle: 'Швидка позначка',
+                    color: const Color(0xFFFFF1C9),
+                    onTap: () {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('👉 Далі: mood check-in')),
+                      );
+                    },
+                  ),
+                ],
+              ),
+              const SizedBox(height: 20),
+              const Text(
+                'Тут завжди безпечно 💛',
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 14, color: Colors.brown),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _KidTile extends StatelessWidget {
+  final String emoji;
+  final String title;
+  final String subtitle;
+  final Color color;
+  final VoidCallback onTap;
+
+  const _KidTile({
+    required this.emoji,
+    required this.title,
+    required this.subtitle,
+    required this.color,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(24),
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: color,
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(color: Colors.black.withOpacity(0.05)),
+        ),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
+          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
           children: [
-            const Text(
-              'Hi! 😊',
-              style: TextStyle(fontSize: 30, fontWeight: FontWeight.w900),
-            ),
+            Text(emoji, style: const TextStyle(fontSize: 40)),
             const SizedBox(height: 8),
-            const Text(
-              'This is Kid mode. Here we’ll build a fun interface with big buttons and images.',
-              style: TextStyle(fontSize: 14, color: Colors.brown),
+            Flexible(
+              child: Text(
+                title,
+                textAlign: TextAlign.center,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w900,
+                  height: 1.15,
+                ),
+              ),
             ),
-            const SizedBox(height: 18),
+            const SizedBox(height: 6),
+            Flexible(
+              child: Text(
+                subtitle,
+                textAlign: TextAlign.center,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  fontSize: 12,
+                  height: 1.15,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
 
-            _KidBigButton(
-              title: 'Talk to the app 🎤',
-              subtitle: 'Record your voice and get help',
-              icon: Icons.mic_none,
-              onTap: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Next: kid voice flow 🙂')),
-                );
-              },
-            ),
-            const SizedBox(height: 14),
-            _KidBigButton(
-              title: 'Calm down 🫧',
-              subtitle: 'Breathing, simple exercises',
-              icon: Icons.air,
-              onTap: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Next: kid calming exercises 🙂')),
-                );
-              },
-            ),
+class _KidCard extends StatelessWidget {
+  final String emoji;
+  final String title;
+  final String subtitle;
+  final Color color;
+  final VoidCallback onTap;
 
-            const Spacer(),
-            const Text(
-              'We can make this screen fully different from Parent mode.',
-              style: TextStyle(fontSize: 12, color: Colors.brown),
+  const _KidCard({
+    required this.emoji,
+    required this.title,
+    required this.subtitle,
+    required this.color,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(24),
+      child: Container(
+        padding: const EdgeInsets.all(18),
+        decoration: BoxDecoration(
+          color: color,
+          borderRadius: BorderRadius.circular(24),
+        ),
+        child: Row(
+          children: [
+            Text(emoji, style: const TextStyle(fontSize: 40)),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: const TextStyle(
+                        fontSize: 20, fontWeight: FontWeight.w900),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(subtitle, style: const TextStyle(fontSize: 14)),
+                ],
+              ),
             ),
           ],
         ),
@@ -257,67 +407,18 @@ class _RoleCard extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
+                  Text(title,
+                      style: const TextStyle(
+                          fontSize: 18, fontWeight: FontWeight.w800)),
                   const SizedBox(height: 4),
-                  Text(subtitle, style: const TextStyle(fontSize: 13, color: Colors.grey)),
+                  Text(subtitle,
+                      style: const TextStyle(fontSize: 13, color: Colors.grey)),
                 ],
               ),
             ),
             const Icon(Icons.chevron_right),
           ],
         ),
-      ),
-    );
-  }
-}
-
-class _KidBigButton extends StatelessWidget {
-  final String title;
-  final String subtitle;
-  final IconData icon;
-  final VoidCallback onTap;
-
-  const _KidBigButton({
-    required this.title,
-    required this.subtitle,
-    required this.icon,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return ElevatedButton(
-      onPressed: onTap,
-      style: ElevatedButton.styleFrom(
-        padding: const EdgeInsets.all(18),
-        backgroundColor: Colors.white,
-        foregroundColor: Colors.black,
-        elevation: 0,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-      ),
-      child: Row(
-        children: [
-          Container(
-            height: 46,
-            width: 46,
-            decoration: BoxDecoration(
-              color: const Color(0xFFFFE3B3),
-              borderRadius: BorderRadius.circular(14),
-            ),
-            child: Icon(icon, color: Colors.brown),
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900)),
-                const SizedBox(height: 4),
-                Text(subtitle, style: const TextStyle(fontSize: 13, color: Colors.grey)),
-              ],
-            ),
-          ),
-        ],
       ),
     );
   }
@@ -344,7 +445,9 @@ class _RoleSwitchChip extends StatelessWidget {
             children: [
               const Icon(Icons.swap_horiz, size: 16, color: Colors.white),
               const SizedBox(width: 8),
-              Text(label, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
+              Text(label,
+                  style: const TextStyle(
+                      color: Colors.white, fontWeight: FontWeight.w700)),
             ],
           ),
         ),
