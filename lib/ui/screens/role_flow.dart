@@ -1,7 +1,13 @@
+import 'dart:convert';
+import 'dart:io';
+
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:http/http.dart' as http;
 
 import '../../core/role_storage.dart';
 import '../../core/user_role.dart';
+import '../widgets/audio_recorder_widget.dart';
 
 // ✅ Parent (adult) home:
 import 'home_screen.dart';
@@ -52,31 +58,31 @@ class RoleSelectScreen extends StatelessWidget {
             children: [
               const SizedBox(height: 12),
               const Text(
-                'Who is using HearMe Kids?',
+                'Хто зараз користується додатком?',
                 style: TextStyle(fontSize: 26, fontWeight: FontWeight.w700),
               ),
               const SizedBox(height: 8),
               const Text(
-                'Choose your mode. You can change it later.',
+                'Обери режим. Потім можна змінити.',
                 style: TextStyle(fontSize: 14, color: Colors.grey),
               ),
               const SizedBox(height: 24),
               _RoleCard(
                 title: 'Parent',
-                subtitle: 'Serious UI: Calm Message, AI Therapist, settings…',
+                subtitle: 'Дорослий інтерфейс: Calm Message, AI Therapist…',
                 icon: Icons.shield_outlined,
                 onTap: () => _choose(context, UserRole.parent),
               ),
               const SizedBox(height: 14),
               _RoleCard(
                 title: 'Kid',
-                subtitle: 'Kid UI: big buttons, images, friendly tone…',
+                subtitle: 'Дитячий інтерфейс: прості кнопки, дружній тон…',
                 icon: Icons.emoji_emotions_outlined,
                 onTap: () => _choose(context, UserRole.kid),
               ),
               const Spacer(),
               const Text(
-                'Tip: later we can add PIN for Parent if you want.',
+                'Порада: пізніше можна додати PIN для Parent.',
                 style: TextStyle(fontSize: 12, color: Colors.grey),
               ),
             ],
@@ -147,7 +153,6 @@ class KidShell extends StatelessWidget {
   }
 }
 
-// ✅ Kid UI (fully different feel)
 class KidHomeScreen extends StatelessWidget {
   const KidHomeScreen({super.key});
 
@@ -176,17 +181,17 @@ class KidHomeScreen extends StatelessWidget {
               ),
               const SizedBox(height: 6),
               const Text(
-                'Що ти хочеш зробити зараз?',
+                'Обери, що ти хочеш зараз:',
                 style: TextStyle(fontSize: 16, color: Colors.brown),
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: 18),
               GridView.count(
                 crossAxisCount: 2,
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
                 crossAxisSpacing: 14,
                 mainAxisSpacing: 14,
-                childAspectRatio: 1,
+                childAspectRatio: 1.0,
                 children: [
                   _KidTile(
                     emoji: '🎤',
@@ -234,7 +239,7 @@ class KidHomeScreen extends StatelessWidget {
                   ),
                 ],
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 18),
               const Text(
                 'Тут завжди безпечно 💛',
                 textAlign: TextAlign.center,
@@ -242,124 +247,6 @@ class KidHomeScreen extends StatelessWidget {
               ),
             ],
           ),
-        ),
-      ),
-    );
-  }
-}
-
-class _KidTile extends StatelessWidget {
-  final String emoji;
-  final String title;
-  final String subtitle;
-  final Color color;
-  final VoidCallback onTap;
-
-  const _KidTile({
-    required this.emoji,
-    required this.title,
-    required this.subtitle,
-    required this.color,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(24),
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: color,
-          borderRadius: BorderRadius.circular(24),
-          border: Border.all(color: Colors.black.withOpacity(0.05)),
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          crossAxisAlignment: CrossAxisAlignment.center,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(emoji, style: const TextStyle(fontSize: 40)),
-            const SizedBox(height: 8),
-            Flexible(
-              child: Text(
-                title,
-                textAlign: TextAlign.center,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w900,
-                  height: 1.15,
-                ),
-              ),
-            ),
-            const SizedBox(height: 6),
-            Flexible(
-              child: Text(
-                subtitle,
-                textAlign: TextAlign.center,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  fontSize: 12,
-                  height: 1.15,
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _KidCard extends StatelessWidget {
-  final String emoji;
-  final String title;
-  final String subtitle;
-  final Color color;
-  final VoidCallback onTap;
-
-  const _KidCard({
-    required this.emoji,
-    required this.title,
-    required this.subtitle,
-    required this.color,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(24),
-      child: Container(
-        padding: const EdgeInsets.all(18),
-        decoration: BoxDecoration(
-          color: color,
-          borderRadius: BorderRadius.circular(24),
-        ),
-        child: Row(
-          children: [
-            Text(emoji, style: const TextStyle(fontSize: 40)),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: const TextStyle(
-                        fontSize: 20, fontWeight: FontWeight.w900),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(subtitle, style: const TextStyle(fontSize: 14)),
-                ],
-              ),
-            ),
-          ],
         ),
       ),
     );
@@ -407,16 +294,61 @@ class _RoleCard extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(title,
-                      style: const TextStyle(
-                          fontSize: 18, fontWeight: FontWeight.w800)),
+                  Text(title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
                   const SizedBox(height: 4),
-                  Text(subtitle,
-                      style: const TextStyle(fontSize: 13, color: Colors.grey)),
+                  Text(subtitle, style: const TextStyle(fontSize: 13, color: Colors.grey)),
                 ],
               ),
             ),
             const Icon(Icons.chevron_right),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _KidTile extends StatelessWidget {
+  final String emoji;
+  final String title;
+  final String subtitle;
+  final Color color;
+  final VoidCallback onTap;
+
+  const _KidTile({
+    required this.emoji,
+    required this.title,
+    required this.subtitle,
+    required this.color,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(22),
+      child: Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: color,
+          borderRadius: BorderRadius.circular(22),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.06),
+              blurRadius: 10,
+              offset: const Offset(0, 6),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(emoji, style: const TextStyle(fontSize: 34)),
+            const SizedBox(height: 10),
+            Text(title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900)),
+            const SizedBox(height: 6),
+            Text(subtitle, style: const TextStyle(fontSize: 12, color: Colors.brown)),
           ],
         ),
       ),
@@ -445,9 +377,7 @@ class _RoleSwitchChip extends StatelessWidget {
             children: [
               const Icon(Icons.swap_horiz, size: 16, color: Colors.white),
               const SizedBox(width: 8),
-              Text(label,
-                  style: const TextStyle(
-                      color: Colors.white, fontWeight: FontWeight.w700)),
+              Text(label, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
             ],
           ),
         ),
@@ -475,7 +405,7 @@ class _Splash extends StatelessWidget {
 }
 
 // =========================
-// Kid screens (UA only)
+// Kid screens (UA only) + AI
 // =========================
 
 class KidTalkChoiceScreen extends StatefulWidget {
@@ -487,6 +417,14 @@ class KidTalkChoiceScreen extends StatefulWidget {
 
 class _KidTalkChoiceScreenState extends State<KidTalkChoiceScreen> {
   final TextEditingController _textCtrl = TextEditingController();
+  bool _isWorking = false;
+  String? _aiHint;
+
+  @override
+  void initState() {
+    super.initState();
+    // Removed controller listener to avoid unnecessary rebuilds.
+  }
 
   @override
   void dispose() {
@@ -494,12 +432,17 @@ class _KidTalkChoiceScreenState extends State<KidTalkChoiceScreen> {
     super.dispose();
   }
 
-  void _shareText() {
+  Future<void> _shareText() async {
     final t = _textCtrl.text.trim();
     if (t.isEmpty) return;
+
+    // Open preview instantly (no waiting UI “freeze”)
     Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (_) => KidShareToParentsPreviewScreen(message: t),
+        builder: (_) => KidShareToParentsPreviewScreen(
+          initialMessage: t,
+          aiFuture: KidAiService.instance.makeParentMessage(childText: t),
+        ),
       ),
     );
   }
@@ -512,10 +455,7 @@ class _KidTalkChoiceScreenState extends State<KidTalkChoiceScreen> {
         backgroundColor: const Color(0xFFFFF6D8),
         elevation: 0,
         centerTitle: true,
-        title: const Text(
-          'Розкажи, як ти себе почуваєш ☁️',
-          style: TextStyle(fontWeight: FontWeight.w900),
-        ),
+        title: const Text('Розкажи, як ти себе почуваєш ☁️', style: TextStyle(fontWeight: FontWeight.w900)),
       ),
       body: SafeArea(
         child: Padding(
@@ -529,72 +469,71 @@ class _KidTalkChoiceScreenState extends State<KidTalkChoiceScreen> {
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 16),
-
               _ChoiceButton(
                 title: 'Написати ✍️',
                 subtitle: 'Напиши, що відчуваєш',
                 color: const Color(0xFFFFE0E0),
-                onTap: () {
-                  // просто фокус на поле нижче
-                  FocusScope.of(context).requestFocus(FocusNode());
-                  Future.delayed(const Duration(milliseconds: 1), () {
-                    FocusScope.of(context).requestFocus();
-                  });
-                },
+                onTap: () {},
               ),
               const SizedBox(height: 12),
-
               _ChoiceButton(
                 title: 'Сказати вголос 🎤',
                 subtitle: '(можна навіть казати погані слова, але ми про це нікому не скажемо 🤭)',
                 color: const Color(0xFFE0F7FA),
                 onTap: () {
-                  Navigator.of(context).push(
-                    MaterialPageRoute(builder: (_) => const KidSayOutLoudScreen()),
-                  );
+                  Navigator.of(context).push(MaterialPageRoute(builder: (_) => const KidSayOutLoudScreen()));
                 },
               ),
               const SizedBox(height: 12),
-
               _ChoiceButton(
                 title: 'Обрати емоцію 😊',
                 subtitle: 'Обери смайлик',
                 color: const Color(0xFFEDE7F6),
                 onTap: () {
-                  Navigator.of(context).push(
-                    MaterialPageRoute(builder: (_) => const KidPickEmotionScreen()),
-                  );
+                  Navigator.of(context).push(MaterialPageRoute(builder: (_) => const KidPickEmotionScreen()));
                 },
               ),
-
+              if (_aiHint != null) ...[
+                const SizedBox(height: 10),
+                Text(_aiHint!, textAlign: TextAlign.center, style: const TextStyle(fontSize: 12, color: Colors.brown)),
+                const SizedBox(height: 8),
+              ],
               const SizedBox(height: 18),
               Container(
                 padding: const EdgeInsets.all(14),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(18),
-                ),
+                decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(18)),
                 child: TextField(
                   controller: _textCtrl,
                   maxLines: 5,
-                  decoration: const InputDecoration(
-                    border: InputBorder.none,
-                    hintText: 'Розкажи про свій день…',
-                  ),
+                  decoration: const InputDecoration(border: InputBorder.none, hintText: 'Розкажи про свій день…'),
                 ),
               ),
               const SizedBox(height: 12),
-
-              SizedBox(
-                height: 48,
-                child: ElevatedButton(
-                  onPressed: _textCtrl.text.trim().isEmpty ? null : _shareText,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF7A3EFE),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                  ),
-                  child: const Text('Поділитися'),
-                ),
+              ValueListenableBuilder<TextEditingValue>(
+                valueListenable: _textCtrl,
+                builder: (context, value, _) {
+                  final canShare = value.text.trim().isNotEmpty && !_isWorking;
+                  return SizedBox(
+                    height: 48,
+                    child: ElevatedButton(
+                      onPressed: canShare ? _shareText : null,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF7A3EFE),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                      ),
+                      child: _isWorking
+                          ? const SizedBox(
+                              height: 18,
+                              width: 18,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                              ),
+                            )
+                          : const Text('Поділитися'),
+                    ),
+                  );
+                },
               ),
             ],
           ),
@@ -604,8 +543,48 @@ class _KidTalkChoiceScreenState extends State<KidTalkChoiceScreen> {
   }
 }
 
-class KidSayOutLoudScreen extends StatelessWidget {
+class KidSayOutLoudScreen extends StatefulWidget {
   const KidSayOutLoudScreen({super.key});
+
+  @override
+  State<KidSayOutLoudScreen> createState() => _KidSayOutLoudScreenState();
+}
+
+class _KidSayOutLoudScreenState extends State<KidSayOutLoudScreen> {
+  String? _audioPath;
+  String? _text;
+  bool _isWorking = false;
+
+  Future<void> _onRecorded(String path) async {
+    setState(() {
+      _audioPath = path;
+      _isWorking = true;
+    });
+
+    try {
+      final t = await KidAiService.instance.transcribeAudio(path);
+      if (!mounted) return;
+      setState(() => _text = t);
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('✅ Я запис почув і перетворив у текст')));
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Не вдалося розпізнати голос: $e')));
+    } finally {
+      if (!mounted) return;
+      setState(() => _isWorking = false);
+    }
+  }
+
+  Future<void> _shareToParents() async {
+    final t = (_text ?? '').trim();
+    if (t.isEmpty) return;
+    Navigator.of(context).push(MaterialPageRoute(
+      builder: (_) => KidShareToParentsPreviewScreen(
+        initialMessage: t,
+        aiFuture: KidAiService.instance.makeParentMessage(childText: t),
+      ),
+    ));
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -615,77 +594,56 @@ class KidSayOutLoudScreen extends StatelessWidget {
         backgroundColor: const Color(0xFFFFF6D8),
         elevation: 0,
         centerTitle: true,
-        title: const Text(
-          'Сказати вголос 🎤',
-          style: TextStyle(fontWeight: FontWeight.w900),
-        ),
+        title: const Text('Сказати вголос 🎤', style: TextStyle(fontWeight: FontWeight.w900)),
       ),
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(24),
           child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const SizedBox(height: 16),
-              const Text(
-                'Можеш говорити все, що відчуваєш 💛',
-                textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800),
-              ),
               const SizedBox(height: 8),
-              const Text(
-                'Можна навіть казати погані слова,\nале ми про це нікому не скажемо 🤭',
-                textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 14, color: Colors.brown),
-              ),
-              const Spacer(),
-              GestureDetector(
-                onTap: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('🎤 Запис почнеться тут (наступний крок)')),
-                  );
-                },
-                child: Container(
-                  height: 160,
-                  width: 160,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: const Color(0xFF7A3EFE),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.15),
-                        blurRadius: 20,
-                        offset: const Offset(0, 10),
-                      ),
-                    ],
+              const Text('Можеш говорити все, що відчуваєш 💛', textAlign: TextAlign.center, style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800)),
+              const SizedBox(height: 8),
+              const Text('Можна навіть казати погані слова,\nале ми про це нікому не скажемо 🤭', textAlign: TextAlign.center, style: TextStyle(fontSize: 14, color: Colors.brown)),
+              const SizedBox(height: 18),
+              AudioRecorderWidget(onRecorded: _onRecorded),
+              if (_isWorking)
+                const Center(
+                  child: Padding(
+                    padding: EdgeInsets.only(top: 8),
+                    child: SizedBox(height: 18, width: 18, child: CircularProgressIndicator(strokeWidth: 2)),
                   ),
-                  child: const Icon(Icons.mic, size: 80, color: Colors.white),
                 ),
-              ),
-              const SizedBox(height: 24),
-              const Text('Натисни і говори', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+              if (_text != null) ...[
+                const SizedBox(height: 14),
+                Container(
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(18)),
+                  child: Text(_text!, style: const TextStyle(fontSize: 14, height: 1.35)),
+                ),
+              ],
               const Spacer(),
               Row(
                 children: [
                   Expanded(
                     child: OutlinedButton(
-                      onPressed: () => Navigator.of(context).pop(),
-                      child: const Text('Скасувати'),
+                      onPressed: _isWorking ? null : () => Navigator.of(context).pop(),
+                      child: const Text('Назад'),
                     ),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
                     child: ElevatedButton(
-                      onPressed: () {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Запис збережено 💛')),
-                        );
-                        Navigator.of(context).pop();
-                      },
-                      child: const Text('Готово'),
+                      onPressed: (_isWorking || (_text ?? '').trim().isEmpty) ? null : _shareToParents,
+                      child: const Text('Поділитися з батьками'),
                     ),
                   ),
                 ],
               ),
+              const SizedBox(height: 8),
+              if (_audioPath == null)
+                const Text('Натисни Record → Stop → Use recording', textAlign: TextAlign.center, style: TextStyle(fontSize: 12, color: Colors.brown)),
             ],
           ),
         ),
@@ -706,13 +664,12 @@ class _KidPickEmotionScreenState extends State<KidPickEmotionScreen> {
 
   void _share() {
     if (_selected == null) return;
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => KidShareToParentsPreviewScreen(
-          message: 'Я зараз відчуваю: $_selected',
-        ),
+    Navigator.of(context).push(MaterialPageRoute(
+      builder: (_) => KidShareToParentsPreviewScreen(
+        initialMessage: 'Я зараз відчуваю: $_selected',
+        aiFuture: KidAiService.instance.makeParentMessage(childText: 'Я зараз відчуваю: $_selected'),
       ),
-    );
+    ));
   }
 
   @override
@@ -773,17 +730,55 @@ class _KidPickEmotionScreenState extends State<KidPickEmotionScreen> {
   }
 }
 
-class KidShareToParentsPreviewScreen extends StatelessWidget {
-  final String message;
-  const KidShareToParentsPreviewScreen({super.key, required this.message});
+class KidShareToParentsPreviewScreen extends StatefulWidget {
+  final String initialMessage;
+  final Future<String>? aiFuture;
+
+  const KidShareToParentsPreviewScreen({
+    super.key,
+    required this.initialMessage,
+    this.aiFuture,
+  });
+
+  @override
+  State<KidShareToParentsPreviewScreen> createState() => _KidShareToParentsPreviewScreenState();
+}
+
+class _KidShareToParentsPreviewScreenState extends State<KidShareToParentsPreviewScreen> {
+  String? _aiMessage;
+  bool _loading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    final f = widget.aiFuture;
+    if (f != null) {
+      _loading = true;
+      f.then((value) {
+        if (!mounted) return;
+        setState(() {
+          _aiMessage = value;
+          _loading = false;
+        });
+      }).catchError((e) {
+        if (!mounted) return;
+        setState(() {
+          _loading = false;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Помилка AI: $e')),
+        );
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
+    final messageToShow = (_aiMessage ?? widget.initialMessage).trim();
+
     return Scaffold(
       backgroundColor: const Color(0xFFF5F7FA),
-      appBar: AppBar(
-        title: const Text('Для батьків 💛'),
-      ),
+      appBar: AppBar(title: const Text('Для батьків 💛')),
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -793,16 +788,19 @@ class KidShareToParentsPreviewScreen extends StatelessWidget {
               'Покажи це мамі або татові:',
               style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
             ),
+            const SizedBox(height: 8),
+            if (_loading)
+              const Text(
+                'Я роблю коротке, спокійне повідомлення… ✨',
+                style: TextStyle(fontSize: 12, color: Colors.grey),
+              ),
             const SizedBox(height: 12),
             Expanded(
               child: Container(
                 padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(16),
-                ),
+                decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16)),
                 child: SingleChildScrollView(
-                  child: Text(message, style: const TextStyle(fontSize: 16, height: 1.4)),
+                  child: Text(messageToShow, style: const TextStyle(fontSize: 16, height: 1.4)),
                 ),
               ),
             ),
@@ -810,10 +808,10 @@ class KidShareToParentsPreviewScreen extends StatelessWidget {
             SizedBox(
               height: 48,
               child: ElevatedButton(
-                onPressed: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Скопіюємо / поділимося — наступний крок 🙂')),
-                  );
+                onPressed: () async {
+                  await Clipboard.setData(ClipboardData(text: messageToShow));
+                  if (!context.mounted) return;
+                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('✅ Скопійовано')));
                 },
                 child: const Text('Скопіювати'),
               ),
@@ -886,16 +884,211 @@ class KidCuriosityAiScreen extends StatelessWidget {
         centerTitle: true,
         title: const Text('Цікавинки / Питай AI 🧠', style: TextStyle(fontWeight: FontWeight.w900)),
       ),
-      body: const Center(
-        child: Text(
-          'Екран питань до AI\n— наступний крок ✅',
-          textAlign: TextAlign.center,
-          style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: _KidCuriosityBody(),
         ),
       ),
     );
   }
 }
+
+class _KidCuriosityBody extends StatefulWidget {
+  @override
+  State<_KidCuriosityBody> createState() => _KidCuriosityBodyState();
+}
+
+class _KidCuriosityBodyState extends State<_KidCuriosityBody> {
+  final _q = TextEditingController();
+  String? _a;
+  bool _loading = false;
+
+  @override
+  void dispose() {
+    _q.dispose();
+    super.dispose();
+  }
+
+  Future<void> _ask() async {
+    final question = _q.text.trim();
+    if (question.isEmpty) return;
+    setState(() {
+      _loading = true;
+      _a = null;
+    });
+    try {
+      final ans = await KidAiService.instance.answerCuriosity(question);
+      if (!mounted) return;
+      setState(() => _a = ans);
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _a = 'Ой, не вийшло 😕 Спробуй ще раз.');
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Помилка AI: $e')));
+    } finally {
+      if (!mounted) return;
+      setState(() => _loading = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const Text(
+          'Запитай будь-що 😊\nНаприклад: «Хто швидше — лев чи ягуар?»',
+          textAlign: TextAlign.center,
+          style: TextStyle(fontSize: 14, color: Colors.brown),
+        ),
+        const SizedBox(height: 14),
+        TextField(
+          controller: _q,
+          decoration: const InputDecoration(
+            hintText: 'Твоє питання…',
+            filled: true,
+            fillColor: Colors.white,
+            border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(16)), borderSide: BorderSide.none),
+          ),
+          onSubmitted: (_) => _ask(),
+        ),
+        const SizedBox(height: 12),
+        SizedBox(
+          height: 48,
+          child: ElevatedButton(
+            onPressed: _loading ? null : _ask,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF7A3EFE),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            ),
+            child: _loading
+                ? const SizedBox(
+                    height: 18,
+                    width: 18,
+                    child: CircularProgressIndicator(strokeWidth: 2, valueColor: AlwaysStoppedAnimation<Color>(Colors.white)),
+                  )
+                : const Text('Запитати'),
+          ),
+        ),
+        const SizedBox(height: 14),
+        if (_a != null)
+          Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(18)),
+            child: Text(_a!, style: const TextStyle(fontSize: 15, height: 1.35)),
+          ),
+      ],
+    );
+  }
+}
+
+// =========================
+// Kid AI service (UA, kid-safe)
+// =========================
+
+class KidAiService {
+  KidAiService._();
+  static final instance = KidAiService._();
+
+  // ⚠️ Dev only. Use the same key you use in CalmMessage/AiTherapist.
+  static const String _apiKey = String.fromEnvironment('OPENAI_API_KEY');
+  static const String _chatUrl = 'https://api.openai.com/v1/chat/completions';
+  static const String _transcribeUrl = 'https://api.openai.com/v1/audio/transcriptions';
+
+  Future<String> makeParentMessage({required String childText}) async {
+    final system = '''
+Ти — помічник для дітей. Твоє завдання: перетворити дитячі емоційні слова на коротке, ввічливе і зрозуміле повідомлення для батьків українською.
+Правила:
+- Без лайки, без образ.
+- Дуже коротко (2–5 речень).
+- Формат: 1) що відчуваю 2) що мені важливо 3) просте прохання.
+- Не вигадуй фактів.
+''';
+    final user = 'Ось слова дитини. Зроби повідомлення для батьків: "$childText"';
+    return _chat(systemPrompt: system, userText: user);
+  }
+
+  Future<String> answerCuriosity(String question) async {
+    final system = '''
+Ти добрий і розумний друг для дитини. Відповідай українською дуже просто.
+Правила:
+- 2–6 коротких речень.
+- Без страшних деталей.
+- Якщо питання незрозуміле — постав 1 уточнююче.
+- Можеш додати 1 цікавинку в кінці.
+''';
+    return _chat(systemPrompt: system, userText: question);
+  }
+
+  Future<String> transcribeAudio(String filePath) async {
+    final key = _apiKey.trim();
+    if (key.isEmpty || key == 'PASTE_YOUR_OPENAI_API_KEY_HERE') {
+      throw Exception('Немає OpenAI ключа для транскрибації');
+    }
+
+    final file = File(filePath);
+    if (!file.existsSync()) {
+      throw Exception('Аудіофайл не знайдено');
+    }
+
+    final uri = Uri.parse(_transcribeUrl);
+    final request = http.MultipartRequest('POST', uri);
+    request.headers['Authorization'] = 'Bearer $key';
+    request.fields['model'] = 'whisper-1';
+    request.fields['response_format'] = 'json';
+    request.files.add(await http.MultipartFile.fromPath('file', filePath));
+
+    final streamed = await request.send();
+    final body = await streamed.stream.bytesToString();
+    if (streamed.statusCode != 200) {
+      throw Exception('Помилка транскрибації: ${streamed.statusCode} – $body');
+    }
+    final data = jsonDecode(body) as Map<String, dynamic>;
+    final text = (data['text'] as String?)?.trim();
+    if (text == null || text.isEmpty) throw Exception('Порожній результат');
+    return text;
+  }
+
+  Future<String> _chat({required String systemPrompt, required String userText}) async {
+    final key = _apiKey.trim();
+    if (key.isEmpty || key == 'PASTE_YOUR_OPENAI_API_KEY_HERE') {
+      throw Exception('Немає OpenAI ключа');
+    }
+
+    final uri = Uri.parse(_chatUrl);
+    final resp = await http.post(
+      uri,
+      headers: {
+        'Authorization': 'Bearer $key',
+        'Content-Type': 'application/json',
+      },
+      body: jsonEncode({
+        'model': 'gpt-4o-mini',
+        'temperature': 0.6,
+        'max_tokens': 220,
+        'messages': [
+          {'role': 'system', 'content': systemPrompt},
+          {'role': 'user', 'content': userText},
+        ],
+      }),
+    );
+
+    if (resp.statusCode != 200) {
+      throw Exception('OpenAI: ${resp.statusCode} – ${resp.body}');
+    }
+
+    final data = jsonDecode(resp.body) as Map<String, dynamic>;
+    final choices = data['choices'] as List<dynamic>;
+    final msg = choices.first['message'] as Map<String, dynamic>;
+    final content = (msg['content'] as String?)?.trim();
+    if (content == null || content.isEmpty) throw Exception('Порожня відповідь AI');
+    return content;
+  }
+}
+
+// =========================
+// Shared choice button (used in KidTalkChoiceScreen)
+// =========================
 
 class _ChoiceButton extends StatelessWidget {
   final String title;
@@ -928,9 +1121,15 @@ class _ChoiceButton extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900)),
+                  Text(
+                    title,
+                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900),
+                  ),
                   const SizedBox(height: 6),
-                  Text(subtitle, style: const TextStyle(fontSize: 12, color: Colors.brown)),
+                  Text(
+                    subtitle,
+                    style: const TextStyle(fontSize: 12, color: Colors.brown),
+                  ),
                 ],
               ),
             ),
