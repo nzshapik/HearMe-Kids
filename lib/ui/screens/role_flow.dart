@@ -847,25 +847,261 @@ class KidBreathingScreen extends StatelessWidget {
   }
 }
 
-class KidExplainToParentsScreen extends StatelessWidget {
+
+class KidExplainToParentsScreen extends StatefulWidget {
   const KidExplainToParentsScreen({super.key});
 
   @override
+  State<KidExplainToParentsScreen> createState() => _KidExplainToParentsScreenState();
+}
+
+class _KidExplainToParentsScreenState extends State<KidExplainToParentsScreen> {
+  final TextEditingController _textCtrl = TextEditingController();
+  final FocusNode _textFocus = FocusNode();
+  final GlobalKey _textFieldKey = GlobalKey();
+  bool _chipsExpanded = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _textFocus.addListener(() {
+      if (_textFocus.hasFocus) {
+        if (mounted) setState(() => _chipsExpanded = false);
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          final ctx = _textFieldKey.currentContext;
+          if (ctx != null) {
+            Scrollable.ensureVisible(
+              ctx,
+              duration: const Duration(milliseconds: 220),
+              curve: Curves.easeOut,
+              alignment: 0.20,
+            );
+          }
+        });
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _textFocus.dispose();
+    _textCtrl.dispose();
+    super.dispose();
+  }
+
+  Future<void> _share() async {
+    final t = _textCtrl.text.trim();
+    if (t.isEmpty) return;
+
+    // Hide keyboard before navigation
+    FocusScope.of(context).unfocus();
+
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => KidShareToParentsPreviewScreen(
+          initialMessage: t,
+          aiFuture: KidAiService.instance.makeParentMessage(childText: t),
+        ),
+      ),
+    );
+  }
+
+  void _insertTemplate(String text) {
+    final current = _textCtrl.text.trim();
+    if (current.isEmpty) {
+      _textCtrl.text = text;
+    } else {
+      _textCtrl.text = '$current\n\n$text';
+    }
+    // Move cursor to the end
+    _textCtrl.selection = TextSelection.fromPosition(
+      TextPosition(offset: _textCtrl.text.length),
+    );
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final bottomInset = MediaQuery.of(context).viewInsets.bottom;
+    final keyboardOpen = bottomInset > 0;
+    final chipsExpanded = !keyboardOpen || _chipsExpanded;
+
+    List<Widget> buildChips() => [
+          _QuickChip(label: 'Мені сумно 😢', onTap: () => _insertTemplate('Мені сумно.')),
+          _QuickChip(label: 'Я злюся 😠', onTap: () => _insertTemplate('Я злюся.')),
+          _QuickChip(label: 'Мені страшно 😟', onTap: () => _insertTemplate('Мені страшно.')),
+          _QuickChip(label: 'Мені важко 😴', onTap: () => _insertTemplate('Мені зараз важко.')),
+          _QuickChip(label: 'Я хочу обійми 🤗', onTap: () => _insertTemplate('Мені потрібні обійми.')),
+          _QuickChip(
+            label: 'Поговоріть зі мною 🗣️',
+            onTap: () => _insertTemplate('Мені важливо, щоб ви мене вислухали.'),
+          ),
+          _QuickChip(
+            label: 'Будь ласка, без крику 🙏',
+            onTap: () => _insertTemplate('Мені важливо, щоб ми говорили спокійно, без крику.'),
+          ),
+        ];
+
     return Scaffold(
+      resizeToAvoidBottomInset: true,
       backgroundColor: const Color(0xFFFFF6D8),
       appBar: AppBar(
         backgroundColor: const Color(0xFFFFF6D8),
         elevation: 0,
         centerTitle: true,
         title: const Text('Пояснити батькам 💛', style: TextStyle(fontWeight: FontWeight.w900)),
+        actions: [
+          TextButton(
+            onPressed: () => FocusScope.of(context).unfocus(),
+            child: const Text('Готово', style: TextStyle(fontWeight: FontWeight.w900)),
+          ),
+        ],
       ),
-      body: const Center(
-        child: Text(
-          'Екран для повідомлення батькам\n— наступний крок ✅',
-          textAlign: TextAlign.center,
-          style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
+
+      // ✅ Button is always visible above the keyboard
+      bottomNavigationBar: AnimatedPadding(
+        duration: const Duration(milliseconds: 180),
+        curve: Curves.easeOut,
+        padding: EdgeInsets.only(left: 20, right: 20, bottom: 12 + bottomInset),
+        child: ValueListenableBuilder<TextEditingValue>(
+          valueListenable: _textCtrl,
+          builder: (context, value, _) {
+            final canShare = value.text.trim().isNotEmpty;
+            return Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                SizedBox(
+                  height: 48,
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: canShare ? _share : null,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF7A3EFE),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                    ),
+                    child: const Text('Зробити повідомлення для батьків'),
+                  ),
+                ),
+                if (!keyboardOpen) ...[
+                  const SizedBox(height: 8),
+                  const Text(
+                    'Порада: якщо важко — натисни «Швидкі фрази» зверху 💛',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(fontSize: 12, color: Colors.brown),
+                  ),
+                ],
+              ],
+            );
+          },
         ),
+      ),
+
+      body: SafeArea(
+        child: ListView(
+          // ✅ Keyboard closes only via “Готово”
+          keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.manual,
+          padding: EdgeInsets.fromLTRB(20, 20, 20, keyboardOpen ? 96 : 140),
+          children: [
+            const Text(
+              'Давай зробимо коротке повідомлення для мами або тата 😊',
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 14, color: Colors.brown),
+            ),
+            const SizedBox(height: 14),
+
+            // Quick templates (compact when keyboard is open; expandable)
+            Container(
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(18)),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Row(
+                    children: [
+                      const Expanded(
+                        child: Text(
+                          'Швидкі фрази (можна натискати):',
+                          style: TextStyle(fontSize: 12, color: Colors.grey),
+                        ),
+                      ),
+                      if (keyboardOpen)
+                        TextButton(
+                          onPressed: () => setState(() => _chipsExpanded = !chipsExpanded),
+                          child: Text(chipsExpanded ? 'Згорнути' : 'Показати'),
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+
+                  if (chipsExpanded)
+                    Wrap(
+                      spacing: 10,
+                      runSpacing: 10,
+                      children: buildChips(),
+                    )
+                  else
+                    SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: Row(
+                        children: [
+                          for (final w in buildChips())
+                            Padding(
+                              padding: const EdgeInsets.only(right: 10),
+                              child: w,
+                            ),
+                        ],
+                      ),
+                    ),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 12),
+
+            // Message box
+            Container(
+              key: _textFieldKey,
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(18)),
+              child: TextField(
+                controller: _textCtrl,
+                focusNode: _textFocus,
+                minLines: 5,
+                maxLines: 10,
+                keyboardType: TextInputType.multiline,
+                textInputAction: TextInputAction.newline,
+                decoration: const InputDecoration(
+                  border: InputBorder.none,
+                  hintText:
+                      'Напиши, що ти відчуваєш і що тобі важливо…\n\nНаприклад:\n«Мені сумно, коли ви мене перебиваєте. Мені важливо, щоб ви мене дослухали. Можна просто 5 хвилин поговорити зі мною?»',
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _QuickChip extends StatelessWidget {
+  final String label;
+  final VoidCallback onTap;
+
+  const _QuickChip({required this.label, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(18),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        decoration: BoxDecoration(
+          color: const Color(0xFF7A3EFE).withOpacity(0.10),
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: Colors.black.withOpacity(0.06)),
+        ),
+        child: Text(label, style: const TextStyle(fontWeight: FontWeight.w800)),
       ),
     );
   }
