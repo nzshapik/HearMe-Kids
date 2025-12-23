@@ -985,7 +985,40 @@ class _KidTalkChatScreenState extends State<KidTalkChatScreen> {
     _scrollToBottom();
 
     try {
-      final reply = await KidAiService.instance.supportKidChat(userText);
+      final reply = await KidAiService.instance.supportKidChat(
+        userText,
+        systemPrompt: '''
+Ти — мудрий, теплий та емпатичний ШІ-помічник для дітей віком 5–12 років.
+
+Твоя роль — допомагати дитині зрозуміти свої емоції, пояснювати причини складної поведінки (її власної або дорослих) та давати підтримку у форматі гри або дружньої розмови.
+
+Ти дієш як дитячий терапевт, який використовує:
+- ігрову терапію
+- Theraplay
+- наративний підхід
+
+ПРИНЦИПИ:
+1. Завжди починай з валідації почуттів дитини («Я бачу…», «Це справді може бути важко…»).
+2. Дитина — не проблема. Проблема — це окремий персонаж (Злість = Монстрик, Тривога = Хмаринка).
+3. Поведінка — це сигнал про потребу (увага, безпека, відпочинок, свобода).
+4. Говори просто, образно, казково. Без складних слів.
+5. Якщо є згадки про фізичну шкоду — м’яко порадь звернутися до надійного дорослого.
+
+СТРУКТУРА ВІДПОВІДІ:
+1. Емпатичне відлуння (перефразуй почуте).
+2. «Айсберг» — що ховається під емоціями.
+3. Поясни поведінку дорослих через їхні емоції.
+4. Запропонуй ОДНУ гру або вправу:
+   - дихання
+   - малювання
+   - слова-помічники
+5. Заверши підтримкою або питанням.
+
+ТОН:
+Теплий, підтримувальний, трохи грайливий.
+Ніколи не повчальний і не суворий.
+''',
+      );
       if (!mounted) return;
       setState(() => _msgs.add(_ChatMsg(isUser: false, text: reply)));
     } catch (e) {
@@ -1041,9 +1074,21 @@ class _KidTalkChatScreenState extends State<KidTalkChatScreen> {
                         borderRadius: BorderRadius.circular(20),
                         border: Border.all(color: Colors.black.withOpacity(0.08)),
                       ),
-                      child: const Text(
-                        'Можеш обрати емоцію 😊',
-                        style: TextStyle(fontWeight: FontWeight.w700),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: const [
+                          Text(
+                            'Можеш обрати емоцію 😊',
+                            style: TextStyle(fontWeight: FontWeight.w700),
+                            textAlign: TextAlign.center,
+                          ),
+                          SizedBox(height: 2),
+                          Text(
+                            'Можеш казати мені все, навіть погані слова — ми нікому не скажемо 🤭',
+                            style: TextStyle(fontSize: 11, color: Colors.black54),
+                            textAlign: TextAlign.center,
+                          ),
+                        ],
                       ),
                     ),
                   ),
@@ -1424,93 +1469,145 @@ class KidExplainToParentsScreen extends StatefulWidget {
 }
 
 class _KidExplainToParentsScreenState extends State<KidExplainToParentsScreen> {
-  final TextEditingController _textCtrl = TextEditingController();
-  final FocusNode _textFocus = FocusNode();
-  final GlobalKey _textFieldKey = GlobalKey();
-  bool _chipsExpanded = false;
+  final _ctrl = TextEditingController();
+  final _scroll = ScrollController();
+  final _inputFocus = FocusNode();
+  final _picker = ImagePicker();
+
+  final List<_ChatMsg> _msgs = [];
+  File? _pendingImage;
+
+  bool _loading = false;
+  bool _voiceOpen = false;
+  bool _voiceWorking = false;
 
   @override
   void initState() {
     super.initState();
-    _textFocus.addListener(() {
-      if (_textFocus.hasFocus) {
-        if (mounted) setState(() => _chipsExpanded = false);
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          final ctx = _textFieldKey.currentContext;
-          if (ctx != null) {
-            Scrollable.ensureVisible(
-              ctx,
-              duration: const Duration(milliseconds: 220),
-              curve: Curves.easeOut,
-              alignment: 0.20,
-            );
-          }
-        });
-      }
-    });
+    _msgs.add(
+      _ChatMsg(
+        isUser: false,
+        text: 'Я допоможу тобі пояснити батькам 💛\nНапиши або запиши вголос, що сталося.',
+      ),
+    );
   }
 
   @override
   void dispose() {
-    _textFocus.dispose();
-    _textCtrl.dispose();
+    _inputFocus.dispose();
+    _ctrl.dispose();
+    _scroll.dispose();
     super.dispose();
   }
 
-  Future<void> _share() async {
-    final t = _textCtrl.text.trim();
-    if (t.isEmpty) return;
+  void _scrollToBottom() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!_scroll.hasClients) return;
+      _scroll.animateTo(
+        _scroll.position.maxScrollExtent,
+        duration: const Duration(milliseconds: 220),
+        curve: Curves.easeOut,
+      );
+    });
+  }
 
-    // Hide keyboard before navigation
+  Future<void> _pickPhoto() async {
+    final x = await _picker.pickImage(source: ImageSource.gallery, imageQuality: 80);
+    if (x == null) return;
+    setState(() => _pendingImage = File(x.path));
+    _scrollToBottom();
+  }
+
+  void _removePhoto() {
+    setState(() => _pendingImage = null);
+  }
+
+  Future<void> _send() async {
+    final t = _ctrl.text.trim();
+    final img = _pendingImage;
+    if (t.isEmpty && img == null) return;
+
+    setState(() {
+      _msgs.add(_ChatMsg(isUser: true, text: t.isEmpty ? '📷 (фото)' : t, image: img));
+      _ctrl.clear();
+      _pendingImage = null;
+      _voiceOpen = false;
+    });
+    _scrollToBottom();
+
+    await _askAi(t.isEmpty ? 'Я додав(ла) фото.' : t);
+  }
+
+  Future<void> _askAi(String userText) async {
+    if (_loading) return;
+    setState(() => _loading = true);
+    _scrollToBottom();
+
+    try {
+      final reply = await KidAiService.instance.supportExplainToParentsChat(userText);
+      if (!mounted) return;
+      setState(() => _msgs.add(_ChatMsg(isUser: false, text: reply)));
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _msgs.add(_ChatMsg(isUser: false, text: 'Ой, щось не вийшло 😕 Спробуй ще раз.')));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Помилка AI: $e')));
+    } finally {
+      if (!mounted) return;
+      setState(() => _loading = false);
+      _scrollToBottom();
+    }
+  }
+
+  Future<void> _onVoiceRecorded(String path) async {
+    if (_voiceWorking) return;
+    setState(() => _voiceWorking = true);
+
+    try {
+      final t = await KidAiService.instance.transcribeAudio(path);
+      if (!mounted) return;
+      final text = t.trim();
+      if (text.isEmpty) return;
+
+      setState(() {
+        _msgs.add(_ChatMsg(isUser: true, text: text));
+        _voiceOpen = false;
+      });
+      _scrollToBottom();
+      await _askAi(text);
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Не вдалося розпізнати голос: $e')));
+    } finally {
+      if (!mounted) return;
+      setState(() => _voiceWorking = false);
+      _scrollToBottom();
+    }
+  }
+
+  Future<void> _share() async {
+    // Build the child text only from user messages.
+    final parts = _msgs.where((m) => m.isUser).map((m) => m.text.trim()).where((t) => t.isNotEmpty).toList();
+    final childText = parts.join('\n');
+    if (childText.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Спочатку напиши або запиши щось 💛')));
+      return;
+    }
+
     FocusScope.of(context).unfocus();
 
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (_) => KidShareToParentsPreviewScreen(
-          initialMessage: t,
-          aiFuture: KidAiService.instance.makeParentMessage(childText: t),
+          initialMessage: childText,
+          aiFuture: KidAiService.instance.makeParentMessage(childText: childText),
         ),
       ),
     );
   }
 
-  void _insertTemplate(String text) {
-    final current = _textCtrl.text.trim();
-    if (current.isEmpty) {
-      _textCtrl.text = text;
-    } else {
-      _textCtrl.text = '$current\n\n$text';
-    }
-    // Move cursor to the end
-    _textCtrl.selection = TextSelection.fromPosition(
-      TextPosition(offset: _textCtrl.text.length),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
-    final bottomInset = MediaQuery.of(context).viewInsets.bottom;
-    final keyboardOpen = bottomInset > 0;
-    final chipsExpanded = !keyboardOpen || _chipsExpanded;
-
-    List<Widget> buildChips() => [
-          _QuickChip(label: 'Мені сумно 😢', onTap: () => _insertTemplate('Мені сумно.')),
-          _QuickChip(label: 'Я злюся 😠', onTap: () => _insertTemplate('Я злюся.')),
-          _QuickChip(label: 'Мені страшно 😟', onTap: () => _insertTemplate('Мені страшно.')),
-          _QuickChip(label: 'Мені важко 😴', onTap: () => _insertTemplate('Мені зараз важко.')),
-          _QuickChip(label: 'Я хочу обійми 🤗', onTap: () => _insertTemplate('Мені потрібні обійми.')),
-          _QuickChip(
-            label: 'Поговоріть зі мною 🗣️',
-            onTap: () => _insertTemplate('Мені важливо, щоб ви мене вислухали.'),
-          ),
-          _QuickChip(
-            label: 'Будь ласка, без крику 🙏',
-            onTap: () => _insertTemplate('Мені важливо, щоб ми говорили спокійно, без крику.'),
-          ),
-        ];
-
     return Scaffold(
-      resizeToAvoidBottomInset: true,
       backgroundColor: const Color(0xFFFFF6D8),
       appBar: AppBar(
         backgroundColor: const Color(0xFFFFF6D8),
@@ -1519,128 +1616,190 @@ class _KidExplainToParentsScreenState extends State<KidExplainToParentsScreen> {
         title: const Text('Пояснити батькам 💛', style: TextStyle(fontWeight: FontWeight.w900)),
         actions: [
           TextButton(
-            onPressed: () => FocusScope.of(context).unfocus(),
-            child: const Text('Готово', style: TextStyle(fontWeight: FontWeight.w900)),
+            onPressed: _share,
+            child: const Text('Для батьків', style: TextStyle(fontWeight: FontWeight.w900)),
           ),
         ],
       ),
-
-      // ✅ Button is always visible above the keyboard
-      bottomNavigationBar: AnimatedPadding(
-        duration: const Duration(milliseconds: 180),
-        curve: Curves.easeOut,
-        padding: EdgeInsets.only(left: 20, right: 20, bottom: 12 + bottomInset),
-        child: ValueListenableBuilder<TextEditingValue>(
-          valueListenable: _textCtrl,
-          builder: (context, value, _) {
-            final canShare = value.text.trim().isNotEmpty;
-            return Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                SizedBox(
-                  height: 48,
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: canShare ? _share : null,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF7A3EFE),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      body: SafeArea(
+        child: Column(
+          children: [
+            // Small transparent hint
+            if (_msgs.length == 1 && !_msgs.first.isUser)
+              Padding(
+                padding: const EdgeInsets.only(top: 8, bottom: 6),
+                child: Center(
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.35),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: Colors.black.withOpacity(0.08)),
                     ),
-                    child: const Text('Зробити повідомлення для батьків'),
+                    child: const Text(
+                      'Можеш казати мені все — я допоможу сформулювати для мами/тата 😊',
+                      style: TextStyle(fontWeight: FontWeight.w700),
+                      textAlign: TextAlign.center,
+                    ),
                   ),
                 ),
-                if (!keyboardOpen) ...[
-                  const SizedBox(height: 8),
-                  const Text(
-                    'Порада: якщо важко — натисни «Швидкі фрази» зверху 💛',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(fontSize: 12, color: Colors.brown),
-                  ),
-                ],
-              ],
-            );
-          },
-        ),
-      ),
+              ),
 
-      body: SafeArea(
-        child: ListView(
-          // ✅ Keyboard closes only via “Готово”
-          keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.manual,
-          padding: EdgeInsets.fromLTRB(20, 20, 20, keyboardOpen ? 96 : 140),
-          children: [
-            const Text(
-              'Давай зробимо коротке повідомлення для мами або тата 😊',
-              textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 14, color: Colors.brown),
-            ),
-            const SizedBox(height: 14),
-
-            // Quick templates (compact when keyboard is open; expandable)
-            Container(
-              padding: const EdgeInsets.all(14),
-              decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(18)),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Row(
-                    children: [
-                      const Expanded(
-                        child: Text(
-                          'Швидкі фрази (можна натискати):',
-                          style: TextStyle(fontSize: 12, color: Colors.grey),
-                        ),
+            Expanded(
+              child: ListView.builder(
+                controller: _scroll,
+                padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
+                itemCount: _msgs.length + (_loading ? 1 : 0),
+                itemBuilder: (context, i) {
+                  if (_loading && i == _msgs.length) {
+                    return const Padding(
+                      padding: EdgeInsets.only(top: 6),
+                      child: Align(
+                        alignment: Alignment.centerLeft,
+                        child: Text('…', style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900)),
                       ),
-                      if (keyboardOpen)
-                        TextButton(
-                          onPressed: () => setState(() => _chipsExpanded = !chipsExpanded),
-                          child: Text(chipsExpanded ? 'Згорнути' : 'Показати'),
-                        ),
-                    ],
-                  ),
-                  const SizedBox(height: 10),
+                    );
+                  }
 
-                  if (chipsExpanded)
-                    Wrap(
-                      spacing: 10,
-                      runSpacing: 10,
-                      children: buildChips(),
-                    )
-                  else
-                    SingleChildScrollView(
-                      scrollDirection: Axis.horizontal,
-                      child: Row(
+                  final m = _msgs[i];
+                  final align = m.isUser ? Alignment.centerRight : Alignment.centerLeft;
+                  final bg = m.isUser ? const Color(0xFF7A3EFE) : Colors.white;
+                  final fg = m.isUser ? Colors.white : Colors.black;
+
+                  return Align(
+                    alignment: align,
+                    child: Container(
+                      constraints: const BoxConstraints(maxWidth: 320),
+                      margin: const EdgeInsets.symmetric(vertical: 6),
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: bg,
+                        borderRadius: BorderRadius.circular(16),
+                        border: m.isUser ? null : Border.all(color: Colors.black.withOpacity(0.06)),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          for (final w in buildChips())
-                            Padding(
-                              padding: const EdgeInsets.only(right: 10),
-                              child: w,
+                          if (m.image != null) ...[
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(12),
+                              child: Image.file(m.image!, height: 140, width: 240, fit: BoxFit.cover),
                             ),
+                            const SizedBox(height: 8),
+                          ],
+                          Text(m.text, style: TextStyle(color: fg, height: 1.35, fontWeight: FontWeight.w600)),
                         ],
                       ),
                     ),
-                ],
+                  );
+                },
               ),
             ),
 
-            const SizedBox(height: 12),
+            if (_voiceOpen)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
+                child: Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(18),
+                    border: Border.all(color: Colors.black.withOpacity(0.06)),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Row(
+                        children: [
+                          const Expanded(
+                            child: Text('Голос 🎤', style: TextStyle(fontWeight: FontWeight.w900)),
+                          ),
+                          IconButton(
+                            onPressed: _voiceWorking ? null : () => setState(() => _voiceOpen = false),
+                            icon: const Icon(Icons.close),
+                          ),
+                        ],
+                      ),
+                      AudioRecorderWidget(onRecorded: _onVoiceRecorded),
+                      if (_voiceWorking)
+                        const Padding(
+                          padding: EdgeInsets.only(top: 8),
+                          child: Center(
+                            child: SizedBox(height: 18, width: 18, child: CircularProgressIndicator(strokeWidth: 2)),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+              ),
 
-            // Message box
-            Container(
-              key: _textFieldKey,
-              padding: const EdgeInsets.all(14),
-              decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(18)),
-              child: TextField(
-                controller: _textCtrl,
-                focusNode: _textFocus,
-                minLines: 5,
-                maxLines: 10,
-                keyboardType: TextInputType.multiline,
-                textInputAction: TextInputAction.newline,
-                decoration: const InputDecoration(
-                  border: InputBorder.none,
-                  hintText:
-                      'Напиши, що ти відчуваєш і що тобі важливо…\n\nНаприклад:\n«Мені сумно, коли ви мене перебиваєте. Мені важливо, щоб ви мене дослухали. Можна просто 5 хвилин поговорити зі мною?»',
+            if (_pendingImage != null)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                child: Row(
+                  children: [
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(12),
+                      child: Image.file(_pendingImage!, height: 54, width: 54, fit: BoxFit.cover),
+                    ),
+                    const SizedBox(width: 10),
+                    const Expanded(
+                      child: Text('Фото додано', style: TextStyle(fontWeight: FontWeight.w800)),
+                    ),
+                    IconButton(onPressed: _removePhoto, icon: const Icon(Icons.close)),
+                  ],
+                ),
+              ),
+
+            SafeArea(
+              top: false,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
+                child: Row(
+                  children: [
+                    OutlinedButton.icon(
+                      onPressed: _loading ? null : () => setState(() => _voiceOpen = !_voiceOpen),
+                      icon: const Icon(Icons.mic, size: 18),
+                      label: const Text('Голос'),
+                      style: OutlinedButton.styleFrom(
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    IconButton(onPressed: _pickPhoto, icon: const Icon(Icons.photo)),
+                    Expanded(
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(18),
+                          border: Border.all(color: Colors.black.withOpacity(0.06)),
+                        ),
+                        child: TextField(
+                          controller: _ctrl,
+                          focusNode: _inputFocus,
+                          minLines: 1,
+                          maxLines: 4,
+                          decoration: const InputDecoration(
+                            border: InputBorder.none,
+                            hintText: 'Напиши…',
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    SizedBox(
+                      height: 44,
+                      child: ElevatedButton(
+                        onPressed: _loading ? null : _send,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF7A3EFE),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                        ),
+                        child: const Text('Send'),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),
@@ -1651,29 +1810,7 @@ class _KidExplainToParentsScreenState extends State<KidExplainToParentsScreen> {
   }
 }
 
-class _QuickChip extends StatelessWidget {
-  final String label;
-  final VoidCallback onTap;
 
-  const _QuickChip({required this.label, required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(18),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-        decoration: BoxDecoration(
-          color: const Color(0xFF7A3EFE).withOpacity(0.10),
-          borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: Colors.black.withOpacity(0.06)),
-        ),
-        child: Text(label, style: const TextStyle(fontWeight: FontWeight.w800)),
-      ),
-    );
-  }
-}
 
 class KidCuriosityAiScreen extends StatelessWidget {
   const KidCuriosityAiScreen({super.key});
@@ -1791,6 +1928,25 @@ class _KidCuriosityBodyState extends State<_KidCuriosityBody> {
 // =========================
 
 class KidAiService {
+
+  Future<String> supportExplainToParentsChat(String childText) async {
+    final system = '''
+Ти — добрий помічник для дитини, який допомагає підготувати пояснення для батьків українською.
+Твій формат відповіді:
+- 1 коротка підтримка.
+- 1 дуже просте уточнююче питання.
+- без моралізаторства.
+- без згадок про те, що ти AI.
+Тон: теплий, спокійний.
+''';
+
+    final t = childText.trim();
+    if (t.isEmpty) {
+      return _chat(systemPrompt: system, userText: 'Мені важко.');
+    }
+
+    return _chat(systemPrompt: system, userText: t);
+  }
   KidAiService._();
   static final instance = KidAiService._();
 
@@ -1824,14 +1980,18 @@ class KidAiService {
     return _chat(systemPrompt: system, userText: question);
   }
 
-  Future<String> supportKidChat(String childText) async {
-    final system = '''
+  Future<String> supportKidChat(
+    String childText, {
+    String? systemPrompt,
+  }) async {
+    final defaultSystem = '''
 Ти — дуже добрий і уважний помічник для дитини. Відповідай українською.
 Спочатку коротко підтримай (1–2 речення), потім постав ОДНЕ уточнююче питання.
 Прості слова. Тон: теплий і спокійний.
 Не пиши нічого про те, що ти AI.
 Не давай небезпечних порад.
 ''';
+    final system = systemPrompt ?? defaultSystem;
 
     final t = childText.trim();
     if (t.isEmpty) {
@@ -1886,7 +2046,7 @@ class KidAiService {
       body: jsonEncode({
         'model': 'gpt-4o-mini',
         'temperature': 0.6,
-        'max_tokens': 220,
+        'max_tokens': 1800,
         'messages': [
           {'role': 'system', 'content': systemPrompt},
           {'role': 'user', 'content': userText},
