@@ -3,13 +3,14 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
 
 import '../../core/role_storage.dart';
 import '../../core/user_role.dart';
 import '../widgets/audio_recorder_widget.dart';
+import '../../core/kid_ai_service.dart';
+import '../../core/kid_prompts.dart';
 
 // ✅ Parent (adult) home:
 import 'home_screen.dart';
@@ -987,37 +988,8 @@ class _KidTalkChatScreenState extends State<KidTalkChatScreen> {
     try {
       final reply = await KidAiService.instance.supportKidChat(
         userText,
-        systemPrompt: '''
-Ти — мудрий, теплий та емпатичний ШІ-помічник для дітей віком 5–12 років.
-
-Твоя роль — допомагати дитині зрозуміти свої емоції, пояснювати причини складної поведінки (її власної або дорослих) та давати підтримку у форматі гри або дружньої розмови.
-
-Ти дієш як дитячий терапевт, який використовує:
-- ігрову терапію
-- Theraplay
-- наративний підхід
-
-ПРИНЦИПИ:
-1. Завжди починай з валідації почуттів дитини («Я бачу…», «Це справді може бути важко…»).
-2. Дитина — не проблема. Проблема — це окремий персонаж (Злість = Монстрик, Тривога = Хмаринка).
-3. Поведінка — це сигнал про потребу (увага, безпека, відпочинок, свобода).
-4. Говори просто, образно, казково. Без складних слів.
-5. Якщо є згадки про фізичну шкоду — м’яко порадь звернутися до надійного дорослого.
-
-СТРУКТУРА ВІДПОВІДІ:
-1. Емпатичне відлуння (перефразуй почуте).
-2. «Айсберг» — що ховається під емоціями.
-3. Поясни поведінку дорослих через їхні емоції.
-4. Запропонуй ОДНУ гру або вправу:
-   - дихання
-   - малювання
-   - слова-помічники
-5. Заверши підтримкою або питанням.
-
-ТОН:
-Теплий, підтримувальний, трохи грайливий.
-Ніколи не повчальний і не суворий.
-''',
+        systemPrompt: KidPrompts.currentKidTalkPrompt,
+        promptVersion: KidPrompts.currentKidTalkKey,
       );
       if (!mounted) return;
       setState(() => _msgs.add(_ChatMsg(isUser: false, text: reply)));
@@ -1544,7 +1516,11 @@ class _KidExplainToParentsScreenState extends State<KidExplainToParentsScreen> {
     _scrollToBottom();
 
     try {
-      final reply = await KidAiService.instance.supportExplainToParentsChat(userText);
+      final reply = await KidAiService.instance.supportKidChat(
+        userText,
+        systemPrompt: KidPrompts.currentKidExplainParentsPrompt,
+        promptVersion: KidPrompts.currentKidExplainParentsKey,
+      );
       if (!mounted) return;
       setState(() => _msgs.add(_ChatMsg(isUser: false, text: reply)));
     } catch (e) {
@@ -1923,149 +1899,6 @@ class _KidCuriosityBodyState extends State<_KidCuriosityBody> {
   }
 }
 
-// =========================
-// Kid AI service (UA, kid-safe)
-// =========================
-
-class KidAiService {
-
-  Future<String> supportExplainToParentsChat(String childText) async {
-    final system = '''
-Ти — добрий помічник для дитини, який допомагає підготувати пояснення для батьків українською.
-Твій формат відповіді:
-- 1 коротка підтримка.
-- 1 дуже просте уточнююче питання.
-- без моралізаторства.
-- без згадок про те, що ти AI.
-Тон: теплий, спокійний.
-''';
-
-    final t = childText.trim();
-    if (t.isEmpty) {
-      return _chat(systemPrompt: system, userText: 'Мені важко.');
-    }
-
-    return _chat(systemPrompt: system, userText: t);
-  }
-  KidAiService._();
-  static final instance = KidAiService._();
-
-  // ⚠️ Dev only. Use the same key you use in CalmMessage/AiTherapist.
-  static const String _apiKey = String.fromEnvironment('OPENAI_API_KEY');
-  static const String _chatUrl = 'https://api.openai.com/v1/chat/completions';
-  static const String _transcribeUrl = 'https://api.openai.com/v1/audio/transcriptions';
-
-  Future<String> makeParentMessage({required String childText}) async {
-    final system = '''
-Ти — помічник для дітей. Твоє завдання: перетворити дитячі емоційні слова на коротке, ввічливе і зрозуміле повідомлення для батьків українською.
-Правила:
-- Без лайки, без образ.
-- Дуже коротко (2–5 речень).
-- Формат: 1) що відчуваю 2) що мені важливо 3) просте прохання.
-- Не вигадуй фактів.
-''';
-    final user = 'Ось слова дитини. Зроби повідомлення для батьків: "$childText"';
-    return _chat(systemPrompt: system, userText: user);
-  }
-
-  Future<String> answerCuriosity(String question) async {
-    final system = '''
-Ти добрий і розумний друг для дитини. Відповідай українською дуже просто.
-Правила:
-- 2–6 коротких речень.
-- Без страшних деталей.
-- Якщо питання незрозуміле — постав 1 уточнююче.
-- Можеш додати 1 цікавинку в кінці.
-''';
-    return _chat(systemPrompt: system, userText: question);
-  }
-
-  Future<String> supportKidChat(
-    String childText, {
-    String? systemPrompt,
-  }) async {
-    final defaultSystem = '''
-Ти — дуже добрий і уважний помічник для дитини. Відповідай українською.
-Спочатку коротко підтримай (1–2 речення), потім постав ОДНЕ уточнююче питання.
-Прості слова. Тон: теплий і спокійний.
-Не пиши нічого про те, що ти AI.
-Не давай небезпечних порад.
-''';
-    final system = systemPrompt ?? defaultSystem;
-
-    final t = childText.trim();
-    if (t.isEmpty) {
-      return _chat(systemPrompt: system, userText: 'Мені важко.');
-    }
-
-    return _chat(systemPrompt: system, userText: t);
-  }
-
-  Future<String> transcribeAudio(String filePath) async {
-    final key = _apiKey.trim();
-    if (key.isEmpty || key == 'PASTE_YOUR_OPENAI_API_KEY_HERE') {
-      throw Exception('Немає OpenAI ключа для транскрибації');
-    }
-
-    final file = File(filePath);
-    if (!file.existsSync()) {
-      throw Exception('Аудіофайл не знайдено');
-    }
-
-    final uri = Uri.parse(_transcribeUrl);
-    final request = http.MultipartRequest('POST', uri);
-    request.headers['Authorization'] = 'Bearer $key';
-    request.fields['model'] = 'whisper-1';
-    request.fields['response_format'] = 'json';
-    request.files.add(await http.MultipartFile.fromPath('file', filePath));
-
-    final streamed = await request.send();
-    final body = await streamed.stream.bytesToString();
-    if (streamed.statusCode != 200) {
-      throw Exception('Помилка транскрибації: ${streamed.statusCode} – $body');
-    }
-    final data = jsonDecode(body) as Map<String, dynamic>;
-    final text = (data['text'] as String?)?.trim();
-    if (text == null || text.isEmpty) throw Exception('Порожній результат');
-    return text;
-  }
-
-  Future<String> _chat({required String systemPrompt, required String userText}) async {
-    final key = _apiKey.trim();
-    if (key.isEmpty || key == 'PASTE_YOUR_OPENAI_API_KEY_HERE') {
-      throw Exception('Немає OpenAI ключа');
-    }
-
-    final uri = Uri.parse(_chatUrl);
-    final resp = await http.post(
-      uri,
-      headers: {
-        'Authorization': 'Bearer $key',
-        'Content-Type': 'application/json',
-      },
-      body: jsonEncode({
-        'model': 'gpt-4o-mini',
-        'temperature': 0.6,
-        'max_tokens': 1800,
-        'messages': [
-          {'role': 'system', 'content': systemPrompt},
-          {'role': 'user', 'content': userText},
-        ],
-      }),
-    );
-
-    if (resp.statusCode != 200) {
-      throw Exception('OpenAI: ${resp.statusCode} – ${resp.body}');
-    }
-
-    final data = jsonDecode(resp.body) as Map<String, dynamic>;
-    final choices = data['choices'] as List<dynamic>;
-    final msg = choices.first['message'] as Map<String, dynamic>;
-    final content = (msg['content'] as String?)?.trim();
-    if (content == null || content.isEmpty) throw Exception('Порожня відповідь AI');
-    return content;
-  }
-}
 
 // =========================
 // Shared choice button (used in KidTalkChoiceScreen)
