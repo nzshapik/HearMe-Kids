@@ -1315,51 +1315,17 @@ class _KidPickEmotionScreenState extends State<KidPickEmotionScreen> {
   }
 }
 
-class KidShareToParentsPreviewScreen extends StatefulWidget {
-  final String initialMessage;
-  final Future<String>? aiFuture;
+class KidShareToParentsPreviewScreen extends StatelessWidget {
+  final String messageToParents;
 
   const KidShareToParentsPreviewScreen({
     super.key,
-    required this.initialMessage,
-    this.aiFuture,
+    required this.messageToParents,
   });
 
   @override
-  State<KidShareToParentsPreviewScreen> createState() => _KidShareToParentsPreviewScreenState();
-}
-
-class _KidShareToParentsPreviewScreenState extends State<KidShareToParentsPreviewScreen> {
-  String? _aiMessage;
-  bool _loading = false;
-
-  @override
-  void initState() {
-    super.initState();
-    final f = widget.aiFuture;
-    if (f != null) {
-      _loading = true;
-      f.then((value) {
-        if (!mounted) return;
-        setState(() {
-          _aiMessage = value;
-          _loading = false;
-        });
-      }).catchError((e) {
-        if (!mounted) return;
-        setState(() {
-          _loading = false;
-        });
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Помилка AI: $e')),
-        );
-      });
-    }
-  }
-
-  @override
   Widget build(BuildContext context) {
-    final messageToShow = (_aiMessage ?? widget.initialMessage).trim();
+    final messageToShow = messageToParents.trim();
 
     return Scaffold(
       backgroundColor: const Color(0xFFF5F7FA),
@@ -1373,12 +1339,6 @@ class _KidShareToParentsPreviewScreenState extends State<KidShareToParentsPrevie
               'Покажи це мамі або татові:',
               style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
             ),
-            const SizedBox(height: 8),
-            if (_loading)
-              const Text(
-                'Я роблю коротке, спокійне повідомлення… ✨',
-                style: TextStyle(fontSize: 12, color: Colors.grey),
-              ),
             const SizedBox(height: 12),
             Expanded(
               child: Container(
@@ -1447,6 +1407,8 @@ class _KidExplainToParentsScreenState extends State<KidExplainToParentsScreen> {
   final _picker = ImagePicker();
 
   final List<_ChatMsg> _msgs = [];
+  String? _cachedParentsLetter;
+  int? _parentPlaceholderIndex;
   File? _pendingImage;
 
   bool _loading = false;
@@ -1504,6 +1466,8 @@ class _KidExplainToParentsScreenState extends State<KidExplainToParentsScreen> {
       _ctrl.clear();
       _pendingImage = null;
       _voiceOpen = false;
+      _cachedParentsLetter = null;
+      _parentPlaceholderIndex = null;
     });
     _scrollToBottom();
 
@@ -1512,26 +1476,92 @@ class _KidExplainToParentsScreenState extends State<KidExplainToParentsScreen> {
 
   Future<void> _askAi(String userText) async {
     if (_loading) return;
-    setState(() => _loading = true);
+    setState(() {
+      _loading = true;
+      _parentPlaceholderIndex = null;
+    });
     _scrollToBottom();
 
     try {
-      final reply = await KidAiService.instance.supportKidChat(
-        userText,
-        systemPrompt: KidPrompts.currentKidExplainParentsPrompt,
-        promptVersion: KidPrompts.currentKidExplainParentsKey,
+      // 1) FAST: kid-facing support
+      final kidReply = await KidAiService.instance.makeExplainParentsKidMessageQuick(
+        childText: userText,
       );
       if (!mounted) return;
-      setState(() => _msgs.add(_ChatMsg(isUser: false, text: reply)));
+
+      final kidMsg = kidReply.trim();
+
+      setState(() {
+        if (kidMsg.isNotEmpty) {
+          _msgs.add(_ChatMsg(isUser: false, text: kidMsg));
+        }
+
+        // Show a placeholder for parent letter while it is being generated.
+        _parentPlaceholderIndex = _msgs.length;
+        _msgs.add(
+          _ChatMsg(
+            isUser: false,
+            text: '✍️ Я готую спокійне повідомлення для батьків…',
+          ),
+        );
+      });
     } catch (e) {
       if (!mounted) return;
-      setState(() => _msgs.add(_ChatMsg(isUser: false, text: 'Ой, щось не вийшло 😕 Спробуй ще раз.')));
+      setState(() {
+        _msgs.add(_ChatMsg(isUser: false, text: 'Ой, щось не вийшло 😕 Спробуй ще раз.'));
+      });
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Помилка AI: $e')));
     } finally {
       if (!mounted) return;
       setState(() => _loading = false);
       _scrollToBottom();
     }
+
+    // 2) SLOWER: parent-facing letter (do not block UI)
+    // ignore: unawaited_futures
+    Future<void>(() async {
+      try {
+        final parentLetter = await KidAiService.instance.makeExplainParentsParentLetterSlow(
+          childText: userText,
+        );
+        if (!mounted) return;
+
+        final letter = parentLetter.trim();
+        if (letter.isEmpty) return;
+
+        setState(() {
+          _cachedParentsLetter = letter;
+
+          final idx = _parentPlaceholderIndex;
+          if (idx != null && idx >= 0 && idx < _msgs.length) {
+            _msgs[idx] = _ChatMsg(
+              isUser: false,
+              text: '💛 Для батьків (скопіюй):\n\n$letter',
+            );
+          } else {
+            _msgs.add(
+              _ChatMsg(
+                isUser: false,
+                text: '💛 Для батьків (скопіюй):\n\n$letter',
+              ),
+            );
+          }
+        });
+
+        _scrollToBottom();
+      } catch (e) {
+        if (!mounted) return;
+        setState(() {
+          final idx = _parentPlaceholderIndex;
+          if (idx != null && idx >= 0 && idx < _msgs.length) {
+            _msgs[idx] = _ChatMsg(
+              isUser: false,
+              text: 'Не вдалося підготувати повідомлення для батьків 😕',
+            );
+          }
+        });
+      }
+    });
   }
 
   Future<void> _onVoiceRecorded(String path) async {
@@ -1547,6 +1577,8 @@ class _KidExplainToParentsScreenState extends State<KidExplainToParentsScreen> {
       setState(() {
         _msgs.add(_ChatMsg(isUser: true, text: text));
         _voiceOpen = false;
+        _cachedParentsLetter = null;
+        _parentPlaceholderIndex = null;
       });
       _scrollToBottom();
       await _askAi(text);
@@ -1571,11 +1603,14 @@ class _KidExplainToParentsScreenState extends State<KidExplainToParentsScreen> {
 
     FocusScope.of(context).unfocus();
 
+    final msgForParents = (_cachedParentsLetter ?? '').trim().isNotEmpty
+        ? _cachedParentsLetter!.trim()
+        : childText.trim();
+
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (_) => KidShareToParentsPreviewScreen(
-          initialMessage: childText,
-          aiFuture: KidAiService.instance.makeParentMessage(childText: childText),
+          messageToParents: msgForParents,
         ),
       ),
     );
