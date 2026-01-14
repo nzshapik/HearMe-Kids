@@ -1,6 +1,8 @@
 import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
+import 'package:http_parser/http_parser.dart';
 import 'kid_prompts.dart';
 
 /// Result of "Explain to parents" feature split into 2 messages:
@@ -71,7 +73,60 @@ class KidAiService {
 
   /// Used by voice input screens (temporary stub)
   Future<String> transcribeAudio(String filePath) async {
-    throw UnimplementedError('transcribeAudio temporarily disabled');
+    // Converts an audio file to text using OpenAI Audio Transcriptions.
+    // Provide the API key at runtime via: --dart-define=OPENAI_API_KEY=...
+    if (_apiKey.isEmpty) {
+      throw Exception('OPENAI_API_KEY is empty');
+    }
+
+    final file = File(filePath);
+    if (!await file.exists()) {
+      throw ArgumentError('Audio file does not exist: $filePath');
+    }
+
+    final uri = Uri.parse('https://api.openai.com/v1/audio/transcriptions');
+    final request = http.MultipartRequest('POST', uri);
+    request.headers['Authorization'] = 'Bearer $_apiKey';
+
+    // Stable transcription model.
+    request.fields['model'] = 'whisper-1';
+    // Ukrainian language hint.
+    request.fields['language'] = 'uk';
+    request.fields['response_format'] = 'json';
+
+    // Infer content-type from file extension (default to m4a).
+    final lower = filePath.toLowerCase();
+    MediaType contentType = MediaType('audio', 'm4a');
+    if (lower.endsWith('.wav')) contentType = MediaType('audio', 'wav');
+    if (lower.endsWith('.mp3')) contentType = MediaType('audio', 'mpeg');
+    if (lower.endsWith('.aac')) contentType = MediaType('audio', 'aac');
+    if (lower.endsWith('.m4a')) contentType = MediaType('audio', 'm4a');
+
+    request.files.add(
+      await http.MultipartFile.fromPath(
+        'file',
+        filePath,
+        contentType: contentType,
+      ),
+    );
+
+    final streamed = await request.send();
+    final body = await streamed.stream.bytesToString();
+
+    if (streamed.statusCode < 200 || streamed.statusCode >= 300) {
+      throw HttpException(
+        'Transcription failed (${streamed.statusCode}): $body',
+        uri: uri,
+      );
+    }
+
+    final decoded = jsonDecode(body);
+    final text = (decoded is Map<String, dynamic>) ? (decoded['text'] as String?) : null;
+    if (text == null || text.trim().isEmpty) {
+      throw StateError('Transcription returned empty text: $body');
+    }
+
+    return text.trim();
   }
 
   // =================================================
